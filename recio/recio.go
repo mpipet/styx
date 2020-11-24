@@ -3,7 +3,7 @@
 //
 // It allows user-defined go types to be atomically read and written from
 // io.Readers and to io.Writers by implementing simple interfaces. These types
-// can encode to abritrary forms, be it fixed or variable length, size-prefixed
+// can encode to arbitrary forms, be it fixed or variable length, size-prefixed
 // or character-delimited representations.
 //
 // The package provides a BufferedReader and a BufferedWriter that rely on
@@ -15,7 +15,7 @@
 // an error (ErrMustFill, ErrMustFlush), giving the user an opportunity to
 // implement custom logic around the Fill and Flush calls that perform the
 // actual I/O. This allows for example to Flush a sink when a source is
-// going to block on Read, thus providing unbuffered behavior without the
+// going to block on Read, thus providing unbuffered-like behavior without the
 // performance hit.
 //
 // LIMITATIONS: BufferedReader and BufferedWriter can only handle records that
@@ -27,10 +27,13 @@ package recio
 
 import "errors"
 
+// IOMode defines buffered reader and writers handling of blocking operations.
+type IOMode int
+
 //
 const (
-	Auto   = 0
-	Manual = 1
+	ModeAuto   IOMode = 0 // Automatically fill or flush.
+	ModeManual IOMode = 1 // Manually fill or flush.
 )
 
 //
@@ -40,6 +43,7 @@ var (
 	ErrMustFill    = errors.New("recio: must fill")
 	ErrTooLarge    = errors.New("recio: too large")
 	ErrShortWrite  = errors.New("recio: short write")
+	ErrCorrupt     = errors.New("recio: corrupt")
 )
 
 // Encoder is the interface that wraps the Encode method.
@@ -64,4 +68,18 @@ type Encoder interface {
 // fill its buffer and retry decoding.
 type Decoder interface {
 	Decode(p []byte) (n int, err error)
+}
+
+// Reader is the interface that wraps the Read method.
+//
+// Read reads a record into v from the underlying data stream.
+type Reader interface {
+	Read(v Decoder) (n int, err error)
+}
+
+// Writer is the interface that wraps the Write method.
+//
+// Write writes the v to the underlying data stream.
+type Writer interface {
+	Write(v Encoder) (n int, err error)
 }

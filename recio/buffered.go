@@ -5,7 +5,7 @@ import "io"
 // BufferedReader implements buffered decoding of records from an io.Reader.
 type BufferedReader struct {
 	reader   io.Reader
-	mode     int
+	mode     IOMode
 	buffer   []byte
 	buffered int
 	offset   int
@@ -14,12 +14,12 @@ type BufferedReader struct {
 }
 
 // NewBufferedReader returns a new BufferedReader whose buffer has the
-// specified size. If mode is set to Manual, Read operations that would trigger
-// a blocking Fill from the underlying io.Reader will return with
+// specified size. If mode is set to ModeManual, Read operations that would
+// trigger a blocking Fill from the underlying io.Reader will return with
 // err == ErrMustFill. The caller must then call Fill manually before calling
-// Read again. If mode is set to Auto (or 0) the reader will Fill its internal
+// Read again. If mode is set to ModeAuto the reader will Fill its internal
 // buffer transparently.
-func NewBufferedReader(r io.Reader, size int, mode int) (br *BufferedReader) {
+func NewBufferedReader(r io.Reader, size int, mode IOMode) (br *BufferedReader) {
 
 	br = &BufferedReader{
 		reader:   r,
@@ -36,8 +36,8 @@ func NewBufferedReader(r io.Reader, size int, mode int) (br *BufferedReader) {
 
 // Read decodes one record into v. If the reader's internal buffer does not
 // contain enough data to decode a complete record, either it is automatically
-// filled from the underlying io.Reader in Auto mode, or Read returns with
-// err == ErrMustFill in Manual mode. Once all records have been read from the
+// filled from the underlying io.Reader in auto mode, or Read returns with
+// err == ErrMustFill in manual mode. Once all records have been read from the
 // underlying io.Reader, Read fails with err == io.EOF. If EOF has been reached
 // but the reader's internal buffer still contains a partial record, Read fails
 // with err == io.ErrUnexpectedEOF. If a record cannot be entirely fit in the
@@ -48,7 +48,7 @@ Retry:
 	if br.mustFill {
 		// The buffer needs to be filled before trying to decode
 		// another record.
-		if br.mode == Manual {
+		if br.mode == ModeManual {
 			return 0, ErrMustFill
 		}
 
@@ -143,19 +143,19 @@ func (br *BufferedReader) Reset(r io.Reader) {
 // io.Writer.
 type BufferedWriter struct {
 	writer    io.Writer
-	mode      int
+	mode      IOMode
 	buffer    []byte
 	buffered  int
 	mustFlush bool
 }
 
 // NewBufferedWriter returns a new BufferedWriter whose buffer has the
-// specified size. If mode is set to Manual, Write operations that would
+// specified size. If mode is set to ModeManual, Write operations that would
 // trigger a blocking Flush to the underlying io.Writer will return with
 // err == ErrMustFlush. The caller must the call Flush manually before calling
 // Write again. If mode is set to Auto (or 0) the writer will Flush its
 // internal buffer transparently.
-func NewBufferedWriter(w io.Writer, size int, mode int) (bw *BufferedWriter) {
+func NewBufferedWriter(w io.Writer, size int, mode IOMode) (bw *BufferedWriter) {
 
 	bw = &BufferedWriter{
 		writer:    w,
@@ -171,7 +171,7 @@ func NewBufferedWriter(w io.Writer, size int, mode int) (bw *BufferedWriter) {
 // Write encodes one record to the writer's internal buffer. If the buffer does
 // not have enough space left to encode the complete record, either it is
 // automatically flushed to the underlying io.Writer in Auto mode, or Write
-// returns with err == ErrMustFlush in Manual mode. If a record cannot be
+// returns with err == ErrMustFlush in manual mode. If a record cannot be
 // entirely fit in the writer's internal buffer, Write fails with
 // err == ErrTooLarge.
 func (bw *BufferedWriter) Write(v Encoder) (n int, err error) {
@@ -181,7 +181,7 @@ Retry:
 		// The buffer needs to be flushed before trying to encode
 		// another record.
 
-		if bw.mode == Manual {
+		if bw.mode == ModeManual {
 			return 0, ErrMustFlush
 		}
 

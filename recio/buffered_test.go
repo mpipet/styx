@@ -54,7 +54,7 @@ func (nr *nullReader) Read(p []byte) (n int, err error) {
 func BenchmarkBufferedWriter(b *testing.B) {
 
 	nw := &nullWriter{}
-	bw := NewBufferedWriter(nw, 1024, Auto)
+	bw := NewBufferedWriter(nw, 1024, ModeAuto)
 
 	var r record = 0
 
@@ -75,7 +75,7 @@ func BenchmarkBufferedWriter(b *testing.B) {
 func BenchmarkBufferedReader(b *testing.B) {
 
 	nr := &nullReader{}
-	br := NewBufferedReader(nr, 1024, Auto)
+	br := NewBufferedReader(nr, 1024, ModeAuto)
 
 	var r record = 0
 
@@ -91,7 +91,7 @@ func BenchmarkBufferedReader(b *testing.B) {
 func TestBufferedWriter_Write(t *testing.T) {
 
 	nw := &nullWriter{}
-	bw := NewBufferedWriter(nw, 16, Auto)
+	bw := NewBufferedWriter(nw, 16, ModeAuto)
 
 	var r record = 0
 
@@ -110,7 +110,7 @@ func TestBufferedWriter_Write(t *testing.T) {
 func TestBufferedWriter_TooLarge(t *testing.T) {
 
 	nw := &nullWriter{}
-	bw := NewBufferedWriter(nw, 3, Auto)
+	bw := NewBufferedWriter(nw, 3, ModeAuto)
 
 	var r record = 0
 
@@ -125,7 +125,7 @@ func TestBufferedWriter_TooLarge(t *testing.T) {
 func TestBufferedWriter_ExplicitFlush(t *testing.T) {
 
 	b := &bytes.Buffer{}
-	bw := NewBufferedWriter(b, 16, Auto)
+	bw := NewBufferedWriter(b, 16, ModeAuto)
 
 	var r record = 1234
 
@@ -156,7 +156,7 @@ func TestBufferedWriter_ExplicitFlush(t *testing.T) {
 func TestBufferedWriter_ImplicitFlush(t *testing.T) {
 
 	b := &bytes.Buffer{}
-	bw := NewBufferedWriter(b, 4, Auto)
+	bw := NewBufferedWriter(b, 4, ModeAuto)
 
 	var r record = 0
 
@@ -174,13 +174,13 @@ func TestBufferedWriter_ImplicitFlush(t *testing.T) {
 	}
 }
 
-// Tests that Manual mode on a BufferedWriter returns the correct error, yields
+// Tests that ModeManual mode on a BufferedWriter returns the correct error, yields
 // the correct number of bytes when flushed manually, and does not raise
 // ErrMustFlush on the next Write call.
-func TestBufferedWriter_Manual(t *testing.T) {
+func TestBufferedWriter_ModeManual(t *testing.T) {
 
 	b := &bytes.Buffer{}
-	bw := NewBufferedWriter(b, 4, Manual)
+	bw := NewBufferedWriter(b, 4, ModeManual)
 
 	var r record = 0
 
@@ -213,12 +213,12 @@ func TestBufferedWriter_Manual(t *testing.T) {
 	}
 }
 
-// Tests that Manual mode on a BufferedWriter returns the correct error and
+// Tests that ModeManual mode on a BufferedWriter returns the correct error and
 // returns it again on the next Write call.
-func TestBufferedWriter_ManualWriteFull(t *testing.T) {
+func TestBufferedWriter_ModeManualWriteFull(t *testing.T) {
 
 	b := &bytes.Buffer{}
-	bw := NewBufferedWriter(b, 4, Manual)
+	bw := NewBufferedWriter(b, 4, ModeManual)
 
 	var r record = 0
 
@@ -251,7 +251,7 @@ func TestBufferedWriter_ManualWriteFull(t *testing.T) {
 func TestBufferedWriter_Reset(t *testing.T) {
 
 	b1 := &bytes.Buffer{}
-	bw := NewBufferedWriter(b1, 8, Auto)
+	bw := NewBufferedWriter(b1, 8, ModeAuto)
 
 	var r record = 0
 
@@ -291,7 +291,7 @@ func TestBufferedWriter_Reset(t *testing.T) {
 func TestBufferedReader_Read(t *testing.T) {
 
 	nr := &nullReader{}
-	br := NewBufferedReader(nr, 16, Auto)
+	br := NewBufferedReader(nr, 16, ModeAuto)
 
 	var r record
 
@@ -310,7 +310,7 @@ func TestBufferedReader_Read(t *testing.T) {
 func TestBufferedReader_TooLarge(t *testing.T) {
 
 	nr := &nullReader{}
-	br := NewBufferedReader(nr, 3, Auto)
+	br := NewBufferedReader(nr, 3, ModeAuto)
 
 	var r record
 
@@ -327,7 +327,7 @@ func TestBufferedReader_EOF(t *testing.T) {
 	buf := []byte{0, 0, 0, 0, 0, 0, 0, 0}
 
 	b := bytes.NewBuffer(buf)
-	br := NewBufferedReader(b, 16, Auto)
+	br := NewBufferedReader(b, 16, ModeAuto)
 
 	var r record
 
@@ -352,7 +352,7 @@ func TestBufferedReader_AlignedEOF(t *testing.T) {
 	buf := []byte{0, 0, 0, 0}
 
 	b := bytes.NewBuffer(buf)
-	bw := NewBufferedReader(b, 4, Auto)
+	bw := NewBufferedReader(b, 4, ModeAuto)
 
 	var r record
 
@@ -372,7 +372,7 @@ func TestBufferedReader_AlignedEOF(t *testing.T) {
 func TestBufferedReader_EmptyEOF(t *testing.T) {
 
 	b := &bytes.Buffer{}
-	br := NewBufferedReader(b, 4, Auto)
+	br := NewBufferedReader(b, 4, ModeAuto)
 
 	var r record
 
@@ -390,7 +390,7 @@ func TestBufferedReader_UnexpectedEOF(t *testing.T) {
 	buf := []byte{0, 0, 0, 0, 0, 0}
 
 	b := bytes.NewBuffer(buf)
-	br := NewBufferedReader(b, 16, Auto)
+	br := NewBufferedReader(b, 16, ModeAuto)
 
 	var r record
 
@@ -412,7 +412,7 @@ func TestBufferedReader_ExplicitFill(t *testing.T) {
 	buf := []byte{0, 0, 4, 210}
 
 	b := bytes.NewBuffer(buf)
-	br := NewBufferedReader(b, 16, Auto)
+	br := NewBufferedReader(b, 16, ModeAuto)
 
 	var r record
 
@@ -439,7 +439,7 @@ func TestBufferedReader_ImplicitFill(t *testing.T) {
 	buf := []byte{0, 0, 4, 210}
 
 	b := bytes.NewBuffer(buf)
-	br := NewBufferedReader(b, 4, Auto)
+	br := NewBufferedReader(b, 4, ModeAuto)
 
 	var r record
 
@@ -449,15 +449,15 @@ func TestBufferedReader_ImplicitFill(t *testing.T) {
 	}
 }
 
-// Tests that Manual mode on a BufferedReader returns the correct error,
+// Tests that ModeManual mode on a BufferedReader returns the correct error,
 // actually fills the buffer when filled manually, and does not raise
 // ErrMustFill on the next Read call.
-func TestBufferedReader_Manual(t *testing.T) {
+func TestBufferedReader_ModeManual(t *testing.T) {
 
 	buf := []byte{0, 0, 4, 210}
 
 	b := bytes.NewBuffer(buf)
-	br := NewBufferedReader(b, 4, Manual)
+	br := NewBufferedReader(b, 4, ModeManual)
 
 	var r record
 
@@ -478,14 +478,14 @@ func TestBufferedReader_Manual(t *testing.T) {
 	}
 }
 
-// Tests that Manual mode on a BufferedReader returns the correct error and
+// Tests that ModeManual mode on a BufferedReader returns the correct error and
 // returns it again on the next Read call.
-func TestBufferedReader_ManualReadEmpty(t *testing.T) {
+func TestBufferedReader_ModeManualReadEmpty(t *testing.T) {
 
 	buf := []byte{0, 0, 4, 210}
 
 	b := bytes.NewBuffer(buf)
-	br := NewBufferedReader(b, 4, Manual)
+	br := NewBufferedReader(b, 4, ModeManual)
 
 	var r record
 
@@ -510,7 +510,7 @@ func TestBufferedReader_Reset(t *testing.T) {
 	buf2 := []byte{0, 0, 22, 46} // big endian 5678
 
 	b1 := bytes.NewBuffer(buf1)
-	br := NewBufferedReader(b1, 4, Auto)
+	br := NewBufferedReader(b1, 4, ModeAuto)
 
 	var r record
 
