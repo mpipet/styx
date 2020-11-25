@@ -194,11 +194,11 @@ Retry:
 	n, err = v.Encode(bw.buffer[bw.buffered:])
 
 	if err == ErrShortBuffer {
-		// Unable to encode a full value.
+		// Unable to encode a full record.
 
 		if bw.buffered == 0 {
 			// The buffer was empty, so it seems we won't be able
-			// to fit this value.
+			// to fit this record.
 			return 0, ErrTooLarge
 		}
 
