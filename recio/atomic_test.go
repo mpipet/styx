@@ -28,7 +28,7 @@ func BenchmarkAtomicWriter(b *testing.B) {
 	}
 }
 
-// Benchmarks reads from a AtomicReader.
+// Benchmarks reads from an AtomicReader.
 func BenchmarkAtomicReader(b *testing.B) {
 
 	nr := &nullReader{}
