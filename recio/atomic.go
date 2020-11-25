@@ -12,6 +12,7 @@ var castagnoliTable = crc32.MakeTable(crc32.Castagnoli)
 // on each Read that the record's checksum matches its data.
 type AtomicReader struct {
 	reader Reader
+	wrapper atomicWrapper
 }
 
 // NewAtomicReader creates a new AtomicReader wrapping the provided Reader.
@@ -19,6 +20,7 @@ func NewAtomicReader(r Reader) (ar *AtomicReader) {
 
 	ar = &AtomicReader{
 		reader: r,
+		wrapper: atomicWrapper{},
 	}
 
 	return ar
@@ -28,11 +30,9 @@ func NewAtomicReader(r Reader) (ar *AtomicReader) {
 // If the check fails, Read returns with err == ErrCorrupt.
 func (ar *AtomicReader) Read(v Decoder) (n int, err error) {
 
-	wrapper := atomicWrapper{
-		decoder: v,
-	}
+	ar.wrapper.decoder = v
 
-	n, err = ar.reader.Read(&wrapper)
+	n, err = ar.reader.Read(&ar.wrapper)
 	if err != nil {
 		return n, err
 	}
@@ -45,6 +45,7 @@ func (ar *AtomicReader) Read(v Decoder) (n int, err error) {
 // checksums to records on write.
 type AtomicWriter struct {
 	writer Writer
+	wrapper atomicWrapper
 }
 
 // NewAtomicWriter returns a new AtomicWriter wrapping the provided Writer.
@@ -52,6 +53,7 @@ func NewAtomicWriter(w Writer) (aw *AtomicWriter) {
 
 	aw = &AtomicWriter{
 		writer: w,
+		wrapper: atomicWrapper{},
 	}
 
 	return aw
@@ -61,11 +63,9 @@ func NewAtomicWriter(w Writer) (aw *AtomicWriter) {
 // trailer.
 func (aw *AtomicWriter) Write(v Encoder) (n int, err error) {
 
-	wrapper := atomicWrapper{
-		encoder: v,
-	}
+	aw.wrapper.encoder = v
 
-	n, err = aw.writer.Write(&wrapper)
+	n, err = aw.writer.Write(&aw.wrapper)
 	if err != nil {
 		return n, err
 	}
@@ -106,6 +106,10 @@ func (w *atomicWrapper) Decode(p []byte) (n int, err error) {
 	n, err = w.decoder.Decode(p)
 	if err != nil {
 		return n, err
+	}
+
+	if len(p) < n+4 {
+		return 0, ErrShortBuffer
 	}
 
 	expected := crc32.Checksum(p[:n], castagnoliTable)
