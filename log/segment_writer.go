@@ -115,7 +115,8 @@ func (sw *segmentWriter) Tell() (position int64, offset int64) {
 
 func (sw *segmentWriter) Write(r *Record) (n int, err error) {
 
-	recordSize := r.Size()
+	// Account for the fact that AtomicWriter will append a 4 bytes CRC.
+	recordSize := r.Size() + 4
 
 	if recordSize > sw.config.MaxRecordSize {
 		return 0, ErrRecordTooLarge
