@@ -28,8 +28,7 @@ var ErrInvalidRecord = errors.New("log: invalid record")
 //	+----------------+--------------------------------+- - - - - - - - +
 //
 // Size is a big-endian int32 and encodes the payload length. Payload is a
-// variable length byte buffer. CRC is a big-endian uint32 and contains
-// the CRC32-C checksum of payload. A CRC32-C of the record is implicitly
+// variable length byte buffer. A CRC32-C of the whole record is implicitly
 // appended and checked when using recio atomic readers / writers.
 //
 // Payload length is limited to 2,147,483,639 bytes (~2GB, max int32 - 8).
