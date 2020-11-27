@@ -190,6 +190,14 @@ func (l *Log) notify(logInfo LogInfo) {
 	defer l.notifyLock.Unlock()
 
 	l.logInfo = logInfo
+
+	for _, subscriber := range l.subscribers {
+		select {
+		case <-subscriber:
+		default:
+		}
+		subscriber <- logInfo
+	}
 }
 
 //
