@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"gitlab.com/dataptive/styx/clock"
+	"gitlab.com/dataptive/styx/flock"
 	"gitlab.com/dataptive/styx/recio"
 )
 
@@ -29,16 +30,19 @@ const (
 )
 
 var (
-	ErrExist          = errors.New("log: log already exists")
-	ErrNotExist       = errors.New("log: log does not exist")
+	ErrExist          = errors.New("log: already exists")
+	ErrNotExist       = errors.New("log: does not exist")
 	ErrUnknownVersion = errors.New("log: unknown version")
 	ErrConfigCorrupt  = errors.New("log: config corrupt")
 	ErrOutOfRange     = errors.New("log: position out of range")
 	ErrInvalidWhence  = errors.New("log: invalid whence")
+	ErrLocked         = errors.New("log: already locked")
+	ErrOrphaned       = errors.New("log: orphaned")
 )
 
 const (
 	configFilename = "config"
+	lockFilename   = "lock"
 
 	dirPerm  = 0744
 	filePerm = 0644
@@ -64,6 +68,7 @@ type Log struct {
 	subscribers []chan LogInfo
 	notifyLock  sync.Mutex
 	writerLock  sync.Mutex
+	lockFile    *flock.Flock
 }
 
 func Create(path string, config Config, options Options) (l *Log, err error) {
@@ -162,19 +167,30 @@ func newLog(path string, config Config, options Options) (l *Log, err error) {
 		subscribers: []chan LogInfo{},
 		notifyLock:  sync.Mutex{},
 		writerLock:  sync.Mutex{},
+		lockFile:    nil,
 	}
 
-	lw, err := l.NewWriter(0, SyncManual, recio.ModeAuto)
+	err = l.acquireFileLock()
 	if err != nil {
 		return nil, err
 	}
 
-	err = lw.Close()
+	err = l.initializeStat()
 	if err != nil {
 		return nil, err
 	}
 
 	return l, nil
+}
+
+func (l *Log) Close() (err error) {
+
+	err = l.releaseFileLock()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (l *Log) NewWriter(bufferSize int, syncMode SyncMode, ioMode recio.IOMode) (lw *LogWriter, err error) {
@@ -259,6 +275,21 @@ func (l *Log) Unsubscribe(subscriber chan LogInfo) {
 	l.subscribers = l.subscribers[:len(l.subscribers)-1]
 }
 
+func (l *Log) initializeStat() (err error) {
+
+	lw, err := l.NewWriter(0, SyncManual, recio.ModeAuto)
+	if err != nil {
+		return err
+	}
+
+	err = lw.Close()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (l *Log) acquireWriterLock() {
 
 	l.writerLock.Lock()
@@ -267,4 +298,38 @@ func (l *Log) acquireWriterLock() {
 func (l *Log) releaseWriterLock() {
 
 	l.writerLock.Unlock()
+}
+
+func (l *Log) acquireFileLock() (err error) {
+
+	pathname := filepath.Join(l.path, lockFilename)
+
+	l.lockFile = flock.New(pathname, os.FileMode(filePerm))
+
+	err = l.lockFile.Acquire()
+
+	if err == flock.ErrLocked {
+		return ErrLocked
+	}
+
+	if err == flock.ErrOrphaned {
+		l.lockFile.Clear()
+		return ErrOrphaned
+	}
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (l *Log) releaseFileLock() (err error) {
+
+	err = l.lockFile.Release()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
