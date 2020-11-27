@@ -8,10 +8,6 @@ import (
 )
 
 const (
-	filePerm      = 0644
-	recordsSuffix = "-records"
-	indexSuffix   = "-index"
-
 	// Segment names encode segments base position, offset and timestamp as
 	// zero padded decimal numbers.
 	segmentNamePattern = "segment-%020d-%020d-%020d"
@@ -21,6 +17,9 @@ const (
 	// most cases.
 	indexSeekBufferSize  = 1 << 10 // 1KB
 	recordSeekBufferSize = 1 << 20 // 1MB
+
+	recordsSuffix = "-records"
+	indexSuffix   = "-index"
 )
 
 var (
@@ -28,6 +27,13 @@ var (
 	errSegmentFull     = errors.New("log: segment full")
 	errSegmentNotExist = errors.New("log: segment does not exist")
 )
+
+type segmentDescriptor struct {
+	segmentName   string
+	basePosition  int64
+	baseOffset    int64
+	baseTimestamp int64
+}
 
 func buildSegmentName(basePosition, baseOffset, baseTimestamp int64) (name string) {
 	name = fmt.Sprintf(segmentNamePattern, basePosition, baseOffset, baseTimestamp)
@@ -57,6 +63,27 @@ func listSegments(path string) (names []string, err error) {
 	return names, nil
 }
 
+func listSegmentDescriptors(path string) (descriptors []segmentDescriptor, err error) {
+
+	names, err := listSegments(path)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, name := range names {
+		basePosition, baseOffset, baseTimestamp := parseSegmentName(name)
+		desc := segmentDescriptor{
+			segmentName:   name,
+			basePosition:  basePosition,
+			baseOffset:    baseOffset,
+			baseTimestamp: baseTimestamp,
+		}
+		descriptors = append(descriptors, desc)
+	}
+
+	return descriptors, nil
+}
+
 func syncSegment(path, name string) (err error) {
 
 	pathname := filepath.Join(path, name) + recordsSuffix
@@ -79,11 +106,19 @@ func deleteSegment(path, name string) (err error) {
 
 	err = os.Remove(pathname + recordsSuffix)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return errSegmentNotExist
+		}
+
 		return err
 	}
 
 	err = os.Remove(pathname + indexSuffix)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+
 		return err
 	}
 

@@ -138,9 +138,9 @@ func (sw *segmentWriter) Write(r *Record) (n int, err error) {
 
 	if sw.config.SegmentMaxAge != -1 {
 
-		currentTimestamp := now.Unix()
+		timestamp := now.Unix()
 
-		if currentTimestamp-sw.baseTimestamp >= sw.config.SegmentMaxAge {
+		if timestamp-sw.baseTimestamp >= sw.config.SegmentMaxAge {
 			return 0, errSegmentFull
 		}
 	}
