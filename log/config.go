@@ -26,7 +26,6 @@ var (
 
 var castagnoliTable = crc32.MakeTable(crc32.Castagnoli)
 
-// Config holds a log configuration.
 type Config struct {
 	MaxRecordSize   int   // Maximum size of an encoded record.
 	IndexAfterSize  int64 // Create an index entry every N bytes.
@@ -38,8 +37,7 @@ type Config struct {
 	LogMaxAge       int64 // Maximum age in seconds of the log.
 }
 
-// Persist the config to path.
-func (config *Config) Dump(pathname string) (err error) {
+func (config *Config) dump(pathname string) (err error) {
 
 	size := 2*4 + 7*8 + 4
 
@@ -85,8 +83,7 @@ func (config *Config) Dump(pathname string) (err error) {
 	return nil
 }
 
-// Load the config from path.
-func (config *Config) Load(pathname string) (err error) {
+func (config *Config) load(pathname string) (err error) {
 
 	buffer, err := ioutil.ReadFile(pathname)
 	if err != nil {

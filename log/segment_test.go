@@ -440,7 +440,7 @@ func TestSegmentReader_Seek1(t *testing.T) {
 
 	var r Record
 
-	err = sr.Seek(0)
+	err = sr.SeekPosition(0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -490,7 +490,7 @@ func TestSegmentReader_Seek2(t *testing.T) {
 
 	var r Record
 
-	err = sr.Seek(4)
+	err = sr.SeekPosition(4)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -540,7 +540,7 @@ func TestSegmentReader_Seek3(t *testing.T) {
 
 	var r Record
 
-	err = sr.Seek(8)
+	err = sr.SeekPosition(8)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -588,7 +588,7 @@ func TestSegmentReader_Seek4(t *testing.T) {
 	}
 	defer sr.Close()
 
-	err = sr.Seek(-1)
+	err = sr.SeekPosition(-1)
 
 	if err != ErrOutOfRange {
 		t.Fatalf("seek should have failed with error ErrOutOfRange but got err = %s", err)
@@ -610,7 +610,7 @@ func TestSegmentReader_Seek5(t *testing.T) {
 	}
 	defer sr.Close()
 
-	err = sr.Seek(9)
+	err = sr.SeekPosition(9)
 
 	if err != ErrOutOfRange {
 		t.Fatalf("seek should have failed with error ErrOutOfRange but got err = %s", err)
@@ -656,7 +656,7 @@ func TestSegmentReader_CorruptIndex1(t *testing.T) {
 	}
 	defer sr.Close()
 
-	err = sr.Seek(8)
+	err = sr.SeekPosition(8)
 	if err != nil {
 		t.Fatalf("seek should have succeeded but failed with err = %s", err)
 	}
@@ -686,7 +686,7 @@ func TestSegmentReader_CorruptIndex2(t *testing.T) {
 	}
 	defer sr.Close()
 
-	err = sr.Seek(8)
+	err = sr.SeekPosition(8)
 	if err != nil {
 		t.Fatalf("seek should have succeeded but failed with err = %s", err)
 	}
@@ -731,7 +731,7 @@ func TestSegmentReader_CorruptRecord(t *testing.T) {
 	}
 	defer sr.Close()
 
-	err = sr.Seek(8)
+	err = sr.SeekPosition(8)
 
 	if err != errSegmentCorrupt {
 		t.Fatalf("seek should have failed with error errSegmentCorrupt but got err = %s", err)

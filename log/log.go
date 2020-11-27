@@ -11,23 +11,30 @@ import (
 	"gitlab.com/dataptive/styx/recio"
 )
 
-//
-type SyncMode int
+type SyncMode string
 
-//
 const (
-	SyncAuto   = 0
-	SyncManual = 1
-	SyncUnsafe = 2
+	SyncManual SyncMode = "manual" // Sync is called manually by the user.
+	SyncAuto   SyncMode = "auto"   // A Sync is automatically queued after each Flush.
+	SyncUnsafe SyncMode = "unsafe" // Readers are notified after Flush without needing a Sync.
 )
 
-//
+type SeekWhence string
+
+const (
+	SeekOrigin  SeekWhence = "origin"  // Seek from the log origin (position 0).
+	SeekStart   SeekWhence = "start"   // Seek from the first available record.
+	SeekCurrent SeekWhence = "current" // Seek from the current position.
+	SeekEnd     SeekWhence = "end"     // Seek from the end of the log.
+)
+
 var (
 	ErrExist          = errors.New("log: log already exists")
 	ErrNotExist       = errors.New("log: log does not exist")
 	ErrUnknownVersion = errors.New("log: unknown version")
 	ErrConfigCorrupt  = errors.New("log: config corrupt")
 	ErrOutOfRange     = errors.New("log: position out of range")
+	ErrInvalidWhence  = errors.New("log: invalid whence")
 )
 
 const (
@@ -41,7 +48,6 @@ var (
 	now = clock.New(time.Second)
 )
 
-//
 type LogInfo struct {
 	StartPosition  int64
 	StartOffset    int64
@@ -50,7 +56,6 @@ type LogInfo struct {
 	EndOffset      int64
 }
 
-//
 type Log struct {
 	path        string
 	config      Config
@@ -60,7 +65,6 @@ type Log struct {
 	notifyLock  sync.Mutex
 }
 
-//
 func Create(path string, config Config, options Options) (l *Log, err error) {
 
 	err = os.Mkdir(path, os.FileMode(dirPerm))
@@ -81,7 +85,7 @@ func Create(path string, config Config, options Options) (l *Log, err error) {
 
 	// Store config file
 	pathname := filepath.Join(path, configFilename)
-	err = config.Dump(pathname)
+	err = config.dump(pathname)
 	if err != nil {
 		return nil, err
 	}
@@ -106,7 +110,6 @@ func Create(path string, config Config, options Options) (l *Log, err error) {
 	return l, nil
 }
 
-//
 func Open(path string, options Options) (l *Log, err error) {
 
 	config := Config{}
@@ -114,7 +117,7 @@ func Open(path string, options Options) (l *Log, err error) {
 	// Load config file
 	pathname := filepath.Join(path, configFilename)
 
-	err = config.Load(pathname)
+	err = config.load(pathname)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, ErrNotExist
@@ -131,7 +134,6 @@ func Open(path string, options Options) (l *Log, err error) {
 	return l, nil
 }
 
-//
 func Delete(path string) (err error) {
 
 	err = os.RemoveAll(path)
@@ -173,7 +175,6 @@ func newLog(path string, config Config, options Options) (l *Log, err error) {
 	return l, nil
 }
 
-//
 func (l *Log) NewWriter(bufferSize int, syncMode SyncMode, ioMode recio.IOMode) (lw *LogWriter, err error) {
 
 	lw, err = newLogWriter(l, bufferSize, syncMode, ioMode)
@@ -182,6 +183,16 @@ func (l *Log) NewWriter(bufferSize int, syncMode SyncMode, ioMode recio.IOMode) 
 	}
 
 	return lw, nil
+}
+
+func (l *Log) NewReader(bufferSize int, follow bool, ioMode recio.IOMode) (lr *LogReader, err error) {
+
+	lr, err = newLogReader(l, bufferSize, follow, ioMode)
+	if err != nil {
+		return nil, err
+	}
+
+	return lr, nil
 }
 
 func (l *Log) notify(logInfo LogInfo) {
@@ -200,7 +211,6 @@ func (l *Log) notify(logInfo LogInfo) {
 	}
 }
 
-//
 func (l *Log) Stat() (logInfo LogInfo) {
 
 	l.notifyLock.Lock()
@@ -211,16 +221,21 @@ func (l *Log) Stat() (logInfo LogInfo) {
 	return logInfo
 }
 
-//
 func (l *Log) Subscribe(subscriber chan LogInfo) {
 
 	l.notifyLock.Lock()
 	defer l.notifyLock.Unlock()
 
+	select {
+	case <-subscriber:
+	default:
+	}
+
+	subscriber <- l.logInfo
+
 	l.subscribers = append(l.subscribers, subscriber)
 }
 
-//
 func (l *Log) Unsubscribe(subscriber chan LogInfo) {
 
 	l.notifyLock.Lock()

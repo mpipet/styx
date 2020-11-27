@@ -123,7 +123,7 @@ func (sr *segmentReader) Fill() (err error) {
 	return nil
 }
 
-func (sr *segmentReader) Seek(position int64) (err error) {
+func (sr *segmentReader) SeekPosition(position int64) (err error) {
 
 	if position < sr.basePosition {
 		return ErrOutOfRange
