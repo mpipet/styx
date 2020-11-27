@@ -221,11 +221,6 @@ func (lw *LogWriter) Flush() (err error) {
 		return err
 	}
 
-	err = lw.enforceMaxAge()
-	if err != nil {
-		return err
-	}
-
 	err = lw.segmentWriter.Flush()
 	if err != nil {
 		return err
