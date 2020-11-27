@@ -67,6 +67,8 @@ func newLogWriter(l *Log, bufferSize int, syncMode SyncMode, ioMode recio.IOMode
 		logInfo:         LogInfo{},
 	}
 
+	lw.log.acquireWriterLock()
+
 	err = lw.updateSegmentList()
 	if err != nil {
 		return nil, err
@@ -146,6 +148,8 @@ func (lw *LogWriter) Close() (err error) {
 	if err != nil {
 		return err
 	}
+
+	lw.log.releaseWriterLock()
 
 	return nil
 }

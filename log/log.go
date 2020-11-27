@@ -63,6 +63,7 @@ type Log struct {
 	logInfo     LogInfo
 	subscribers []chan LogInfo
 	notifyLock  sync.Mutex
+	writerLock  sync.Mutex
 }
 
 func Create(path string, config Config, options Options) (l *Log, err error) {
@@ -160,6 +161,7 @@ func newLog(path string, config Config, options Options) (l *Log, err error) {
 		logInfo:     LogInfo{},
 		subscribers: []chan LogInfo{},
 		notifyLock:  sync.Mutex{},
+		writerLock:  sync.Mutex{},
 	}
 
 	lw, err := l.NewWriter(0, SyncManual, recio.ModeAuto)
@@ -255,4 +257,14 @@ func (l *Log) Unsubscribe(subscriber chan LogInfo) {
 
 	l.subscribers[pos] = l.subscribers[len(l.subscribers)-1]
 	l.subscribers = l.subscribers[:len(l.subscribers)-1]
+}
+
+func (l *Log) acquireWriterLock() {
+
+	l.writerLock.Lock()
+}
+
+func (l *Log) releaseWriterLock() {
+
+	l.writerLock.Unlock()
 }
