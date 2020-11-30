@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"gitlab.com/dataptive/styx/recio"
 )
@@ -193,4 +194,875 @@ func benchmarkLog_Reader(b *testing.B, payloadSize int) {
 	}
 
 	b.SetBytes(read / int64(b.N))
+}
+
+// Tests that logs can be created.
+func TestLog_Create(t *testing.T) {
+
+	path := t.TempDir()
+
+	name := filepath.Join(path, "test")
+
+	config := DefaultConfig
+	options := DefaultOptions
+
+	l, err := Create(name, config, options)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer l.Close()
+
+	configPathname := filepath.Join(name, configFilename)
+
+	_, err = os.Stat(configPathname)
+	if err != nil {
+		if os.IsNotExist(err) {
+			t.Fatalf("should have config file %s but got none", configPathname)
+		}
+
+		t.Fatal(err)
+	}
+
+	lockPathname := filepath.Join(name, lockFilename)
+
+	_, err = os.Stat(lockPathname)
+	if err != nil {
+		if os.IsNotExist(err) {
+			t.Fatalf("should have lock file %s but got none", lockPathname)
+		}
+
+		t.Fatal(err)
+	}
+}
+
+// Tests that existing logs can be opened.
+func TestLog_Open(t *testing.T) {
+
+	path := t.TempDir()
+
+	name := filepath.Join(path, "test")
+
+	config := DefaultConfig
+	options := DefaultOptions
+
+	l, err := Create(name, config, options)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = l.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	l, err = Open(name, options)
+	if err != nil {
+		t.Fatalf("open should have succeeded but failed with err = %s", err)
+	}
+	defer l.Close()
+}
+
+// Tests that logs can be deleted.
+func TestLog_Delete(t *testing.T) {
+
+	path := t.TempDir()
+	name := filepath.Join(path, "test")
+
+	config := DefaultConfig
+	options := DefaultOptions
+
+	l, err := Create(name, config, options)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = l.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = Delete(name)
+	if err != nil {
+		t.Fatalf("delete should have succeeded but failed with err = %s", err)
+	}
+
+	_, err = os.Stat(name)
+	if err == nil {
+		t.Fatal("delete should have delete the log but it still exists")
+	}
+
+	if err != nil && !os.IsNotExist(err) {
+		t.Fatal(err)
+	}
+}
+
+// Helper functions for testing roll and retention.
+func testLog_Write(t *testing.T, path string, config Config, options Options, recordCount int, payloadSize int, delayMs int) {
+
+	l, err := Create(path, config, options)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer l.Close()
+
+	lw, err := l.NewWriter(1 << 20, SyncManual, recio.ModeAuto)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer lw.Close()
+
+	payload := make([]byte, payloadSize)
+	r := Record(payload)
+
+	for i := 0; i < recordCount; i++ {
+		_, err := lw.Write(&r)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		time.Sleep(time.Duration(delayMs) * time.Millisecond)
+	}
+
+	err = lw.Flush()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = lw.Sync()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = lw.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+// Tests that segments roll correctly with a count policy.
+func TestLog_CountRoll(t *testing.T) {
+
+	path := t.TempDir()
+	name := filepath.Join(path, "test")
+
+	config := DefaultConfig
+	options := DefaultOptions
+
+	config.SegmentMaxCount = 5
+
+	testLog_Write(t, name, config, options, 10, 10, 0)
+
+	names, err := listSegments(name)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(names) != 2 {
+		t.Fatalf("should have 2 segments but got %d", len(names))
+	}
+}
+
+// Tests that segments roll correctly with a size policy.
+func TestLog_SizeRoll(t *testing.T) {
+
+	path := t.TempDir()
+	name := filepath.Join(path, "test")
+
+	config := DefaultConfig
+	options := DefaultOptions
+
+	config.SegmentMaxSize = 500
+
+	testLog_Write(t, name, config, options, 10, 92, 0)
+
+	names, err := listSegments(name)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(names) != 2 {
+		t.Fatalf("should have 2 segments but got %d", len(names))
+	}
+}
+
+// Tests that segments roll correctly with an age policy.
+func TestLog_AgeRoll(t *testing.T) {
+
+	path := t.TempDir()
+	name := filepath.Join(path, "test")
+
+	config := DefaultConfig
+	options := DefaultOptions
+
+	config.SegmentMaxAge = 1
+
+	testLog_Write(t, name, config, options, 10, 10, 110)
+
+	names, err := listSegments(name)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(names) != 2 {
+		t.Fatalf("should have 2 segments but got %d", len(names))
+	}
+}
+
+// Tests that retention is correctly enforced for count limits.
+func TestLog_CountRetention(t *testing.T) {
+
+	path := t.TempDir()
+	name := filepath.Join(path, "test")
+
+	config := DefaultConfig
+	options := DefaultOptions
+
+	config.SegmentMaxCount = 5
+	config.LogMaxCount = 10
+
+	testLog_Write(t, name, config, options, 20, 10, 0)
+
+	names, err := listSegments(name)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(names) != 2 {
+		t.Fatalf("should have 2 segments but got %d", len(names))
+	}
+}
+
+// Tests that retention is correctly enforced for size limits.
+func TestLog_SizeRetention(t *testing.T) {
+
+	path := t.TempDir()
+	name := filepath.Join(path, "test")
+
+	config := DefaultConfig
+	options := DefaultOptions
+
+	config.SegmentMaxSize = 500
+	config.LogMaxSize = 1000
+
+	testLog_Write(t, name, config, options, 20, 92, 0)
+
+	names, err := listSegments(name)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(names) != 2 {
+		t.Fatalf("should have 2 segments but got %d", len(names))
+	}
+}
+
+// Tests that retention is correctly enforced for age limits.
+func TestLog_AgeRetention(t *testing.T) {
+
+	path := t.TempDir()
+	name := filepath.Join(path, "test")
+
+	config := DefaultConfig
+	options := DefaultOptions
+
+	config.SegmentMaxAge = 1
+	config.LogMaxAge = 2
+
+	testLog_Write(t, name, config, options, 40, 10, 100)
+
+	names, err := listSegments(name)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(names) != 3 {
+		t.Fatalf("should have 3 segments but got %d %v", len(names), names)
+	}
+}
+
+// Tests that records written in SyncUnsafe mode are correctly notified to log.
+func TestLog_SyncUnsafe(t *testing.T) {
+
+	payloadSize := 100
+	recordCount := 10
+
+	config := DefaultConfig
+	options := DefaultOptions
+
+	path := t.TempDir()
+	name := filepath.Join(path, "test")
+
+	l, err := Create(name, config, options)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer l.Close()
+
+	lw, err := l.NewWriter(1 << 20, SyncUnsafe, recio.ModeAuto)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer lw.Close()
+
+	payload := make([]byte, payloadSize)
+	r := Record(payload)
+
+	for i := 0; i < recordCount; i++ {
+		_, err := lw.Write(&r)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	err = lw.Flush()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	logInfo := l.Stat()
+
+	if logInfo.EndPosition != 10 {
+		t.Fatalf("log should end at position 10 but ends at %d", logInfo.EndPosition)
+	}
+
+	if logInfo.EndOffset != 1080 {
+		t.Fatalf("log should end at offset 1080 but ends at %d", logInfo.EndPosition)
+	}
+}
+
+// Tests that records written in SyncManual mode are correctly notified to log.
+func TestLog_SyncManual(t *testing.T) {
+
+	payloadSize := 100
+	recordCount := 10
+
+	config := DefaultConfig
+	options := DefaultOptions
+
+	path := t.TempDir()
+	name := filepath.Join(path, "test")
+
+	l, err := Create(name, config, options)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer l.Close()
+
+	lw, err := l.NewWriter(1 << 20, SyncManual, recio.ModeAuto)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer lw.Close()
+
+	payload := make([]byte, payloadSize)
+	r := Record(payload)
+
+	for i := 0; i < recordCount; i++ {
+		_, err := lw.Write(&r)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	err = lw.Flush()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = lw.Sync()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	logInfo := l.Stat()
+
+	if logInfo.EndPosition != 10 {
+		t.Fatalf("log should end at position 10 but ends at %d", logInfo.EndPosition)
+	}
+
+	if logInfo.EndOffset != 1080 {
+		t.Fatalf("log should end at offset 1080 but ends at %d", logInfo.EndPosition)
+	}
+}
+
+// Tests that records written in SyncAuto mode are correctly notified to log.
+func TestLog_SyncAuto(t *testing.T) {
+
+	payloadSize := 100
+	recordCount := 10
+
+	config := DefaultConfig
+	options := DefaultOptions
+
+	path := t.TempDir()
+	name := filepath.Join(path, "test")
+
+	l, err := Create(name, config, options)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer l.Close()
+
+	lw, err := l.NewWriter(1 << 20, SyncAuto, recio.ModeAuto)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	payload := make([]byte, payloadSize)
+	r := Record(payload)
+
+	for i := 0; i < recordCount; i++ {
+		_, err := lw.Write(&r)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	err = lw.Flush()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = lw.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	logInfo := l.Stat()
+
+	if logInfo.EndPosition != 10 {
+		t.Fatalf("log should end at position 10 but ends at %d", logInfo.EndPosition)
+	}
+
+	if logInfo.EndOffset != 1080 {
+		t.Fatalf("log should end at offset 1080 but ends at %d", logInfo.EndPosition)
+	}
+}
+
+// Tests that readers blocked on follow are correctly unblocked on close.
+func TestLog_CloseFollow(t *testing.T) {
+
+	config := DefaultConfig
+	options := DefaultOptions
+
+	path := t.TempDir()
+	name := filepath.Join(path, "test")
+
+	l, err := Create(name, config, options)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer l.Close()
+
+	lw, err := l.NewWriter(1 << 20, SyncUnsafe, recio.ModeAuto)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer lw.Close()
+
+	lr, err := l.NewReader(1 << 10, true, recio.ModeAuto)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	go func() {
+		time.Sleep(100 * time.Millisecond)
+		err = lr.Close()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}()
+
+	var r Record
+
+	_, err = lr.Read(&r)
+	if err != ErrClosed {
+		t.Fatalf("read should have failed with ErrClose but got err = %s", err)
+	}
+}
+
+// Tests that readers blocked on follow are correctly unblocked on new record.
+func TestLog_UnblockFollow(t *testing.T) {
+
+	config := DefaultConfig
+	options := DefaultOptions
+
+	path := t.TempDir()
+	name := filepath.Join(path, "test")
+
+	l, err := Create(name, config, options)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer l.Close()
+
+	lw, err := l.NewWriter(1 << 20, SyncUnsafe, recio.ModeAuto)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer lw.Close()
+
+	lr, err := l.NewReader(1 << 10, true, recio.ModeAuto)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	go func() {
+		time.Sleep(50 * time.Millisecond)
+
+		r := Record([]byte("test"))
+
+		_, err := lw.Write(&r)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		err = lw.Flush()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}()
+
+	go func() {
+		// Unblock reader in case test fails.
+		time.Sleep(100 * time.Millisecond)
+		err = lr.Close()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}()
+
+	var r Record
+
+	_, err = lr.Read(&r)
+	if err != nil {
+		t.Fatalf("read should have succeeded but failed with err = %s", err)
+	}
+}
+
+// Tests that a missing segment is correctly detected as a corruption.
+func TestLog_MissingSegment(t *testing.T) {
+
+	path := t.TempDir()
+	name := filepath.Join(path, "test")
+
+	config := DefaultConfig
+	options := DefaultOptions
+
+	config.SegmentMaxCount = 5
+
+	testLog_Write(t, name, config, options, 20, 10, 0)
+
+	names, err := listSegments(name)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = deleteSegment(name, names[1])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	l, err := Open(name, options)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	lr, err := l.NewReader(1 << 10, false, recio.ModeAuto)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var r Record
+
+	for i := 0; i < 5; i++ {
+		_, err = lr.Read(&r)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	_, err = lr.Read(&r)
+	if err != ErrCorrupt {
+		t.Fatalf("read should have failed with error ErrCorrupt but got err = %s", err)
+	}
+}
+
+// Tests that corrupt records are correctly detected.
+func TestLog_CorruptRecord(t *testing.T) {
+
+	path := t.TempDir()
+	name := filepath.Join(path, "test")
+
+	config := DefaultConfig
+	options := DefaultOptions
+
+	config.SegmentMaxCount = 5
+
+	testLog_Write(t, name, config, options, 20, 10, 0)
+
+	names, err := listSegments(name)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Corrupt the second segment
+	pathname := filepath.Join(name, names[1]) + recordsSuffix
+
+	f, err := os.OpenFile(pathname, os.O_RDWR, os.FileMode(0))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	offset := int64(40)
+
+	_, err = f.Seek(offset, os.SEEK_SET)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = f.Write([]byte{0xff, 0xff, 0xff, 0xff})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = f.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	l, err := Open(name, options)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	lr, err := l.NewReader(1 << 10, false, recio.ModeAuto)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var r Record
+	var er error = nil
+
+	for {
+		_, err = lr.Read(&r)
+		if err != nil {
+			er = err
+			break
+		}
+	}
+
+	if er != ErrCorrupt {
+		t.Fatalf("read should have failed with error ErrCorrupt but got err = %s", err)
+	}
+}
+
+// Tests that a record with negative size is correctly detected as a corrupt
+// record.
+func TestLog_NegativeSize(t *testing.T) {
+
+	path := t.TempDir()
+	name := filepath.Join(path, "test")
+
+	config := DefaultConfig
+	options := DefaultOptions
+
+	config.SegmentMaxCount = 5
+
+	testLog_Write(t, name, config, options, 20, 10, 0)
+
+	names, err := listSegments(name)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Corrupt the size field of the first record of the first segment.
+	pathname := filepath.Join(name, names[0]) + recordsSuffix
+
+	f, err := os.OpenFile(pathname, os.O_RDWR, os.FileMode(0))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	offset := int64(0)
+
+	_, err = f.Seek(offset, os.SEEK_SET)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = f.Write([]byte{0xff, 0xff, 0xff, 0xff})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = f.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	l, err := Open(name, options)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	lr, err := l.NewReader(1 << 10, false, recio.ModeAuto)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var r Record
+	var er error = nil
+
+	for {
+		_, err = lr.Read(&r)
+		if err != nil {
+			er = err
+			break
+		}
+	}
+
+	if er != ErrCorrupt {
+		t.Fatalf("read should have failed with error ErrCorrupt but got err = %s", err)
+	}
+}
+
+// Tests that a record size above config MaxRecordSize is detected as a corrupt
+// record when reading from a file large enough to host the corrupt size.
+func TestLog_TooLargeBigFile(t *testing.T) {
+
+	path := t.TempDir()
+	name := filepath.Join(path, "test")
+
+	config := DefaultConfig
+	options := DefaultOptions
+
+	config.MaxRecordSize = 1024
+
+	testLog_Write(t, name, config, options, 1024, 1024-8, 0)
+
+	names, err := listSegments(name)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Corrupt the size field of the first record of the first segment.
+	pathname := filepath.Join(name, names[0]) + recordsSuffix
+
+	f, err := os.OpenFile(pathname, os.O_RDWR, os.FileMode(0))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	offset := int64(0)
+
+	_, err = f.Seek(offset, os.SEEK_SET)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = f.Write([]byte{0x00, 0x00, 0xff, 0xff})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = f.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	l, err := Open(name, options)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	lr, err := l.NewReader(1 << 10, false, recio.ModeAuto)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var r Record
+	var er error = nil
+
+	for {
+		_, err = lr.Read(&r)
+		if err != nil {
+			er = err
+			break
+		}
+	}
+
+	if er != ErrCorrupt {
+		t.Fatalf("read should have failed with error ErrCorrupt but got err = %s", err)
+	}
+}
+
+// Tests that a record size above config MaxRecordSize is detected as a corrupt
+// record when reading from a file too small to host it.
+func TestLog_TooLargeSmallFile(t *testing.T) {
+
+	path := t.TempDir()
+	name := filepath.Join(path, "test")
+
+	config := DefaultConfig
+	options := DefaultOptions
+
+	config.SegmentMaxCount = 5
+
+	testLog_Write(t, name, config, options, 20, 10, 0)
+
+	names, err := listSegments(name)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Corrupt the size field of the first record of the first segment.
+	pathname := filepath.Join(name, names[0]) + recordsSuffix
+
+	f, err := os.OpenFile(pathname, os.O_RDWR, os.FileMode(0))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	offset := int64(0)
+
+	_, err = f.Seek(offset, os.SEEK_SET)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = f.Write([]byte{0x00, 0xff, 0xff, 0xff})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = f.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	l, err := Open(name, options)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	lr, err := l.NewReader(1 << 10, false, recio.ModeAuto)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var r Record
+	var er error = nil
+
+	for {
+		_, err = lr.Read(&r)
+		if err != nil {
+			er = err
+			break
+		}
+	}
+
+	if er != ErrCorrupt {
+		t.Fatalf("read should have failed with error ErrCorrupt but got err = %s", err)
+	}
 }
