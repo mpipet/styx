@@ -41,6 +41,7 @@ var (
 	ErrNotExist       = errors.New("log: does not exist")
 	ErrUnknownVersion = errors.New("log: unknown version")
 	ErrConfigCorrupt  = errors.New("log: config corrupt")
+	ErrCorrupt        = errors.New("log: corrupt")
 	ErrOutOfRange     = errors.New("log: position out of range")
 	ErrInvalidWhence  = errors.New("log: invalid whence")
 	ErrLocked         = errors.New("log: already locked")

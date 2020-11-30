@@ -125,6 +125,18 @@ Retry:
 		goto Retry
 	}
 
+	if err == errSegmentCorrupt {
+		return 0, ErrCorrupt
+	}
+
+	if err == ErrInvalidRecord {
+		return 0, ErrCorrupt
+	}
+
+	if err == ErrRecordTooLarge {
+		return 0, ErrCorrupt
+	}
+
 	if err != nil {
 		return n, err
 	}
@@ -206,6 +218,11 @@ func (lr *LogReader) Seek(position int64, whence SeekWhence) (err error) {
 	}
 
 	err = lr.seekPosition(absolute)
+
+	if err == errSegmentCorrupt {
+		return ErrCorrupt
+	}
+
 	if err != nil {
 		return err
 	}
@@ -238,7 +255,7 @@ func (lr *LogReader) seekPosition(position int64) (err error) {
 
 	current := lr.segmentList[pos]
 
-	segmentReader, err := newSegmentReader(lr.log.path, current.segmentName, lr.bufferSize)
+	segmentReader, err := newSegmentReader(lr.log.path, current.segmentName, lr.log.config, lr.bufferSize)
 
 	if err == errSegmentNotExist {
 		return ErrOutOfRange
@@ -249,6 +266,11 @@ func (lr *LogReader) seekPosition(position int64) (err error) {
 	}
 
 	err = segmentReader.SeekPosition(position)
+
+	if err == errSegmentCorrupt {
+		return ErrCorrupt
+	}
+
 	if err != nil {
 		return err
 	}
@@ -306,7 +328,11 @@ func (lr *LogReader) openNextSegment() (err error) {
 
 	next := lr.segmentList[nextSegment]
 
-	segmentReader, err := newSegmentReader(lr.log.path, next.segmentName, lr.bufferSize)
+	if next.basePosition != lr.position {
+		return ErrCorrupt
+	}
+
+	segmentReader, err := newSegmentReader(lr.log.path, next.segmentName, lr.log.config, lr.bufferSize)
 
 	if err == errSegmentNotExist {
 		return ErrOutOfRange

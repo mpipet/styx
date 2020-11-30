@@ -395,11 +395,12 @@ func TestSegmentReader_Read(t *testing.T) {
 
 	path := t.TempDir()
 	name := buildSegmentName(0, 0, 0)
+	config := DefaultConfig
 	bufferSize := 1 << 10
 
 	testSegment_Write(t, path, true, 8, 256, 1<<10)
 
-	sr, err := newSegmentReader(path, name, bufferSize)
+	sr, err := newSegmentReader(path, name, config, bufferSize)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -428,11 +429,12 @@ func TestSegmentReader_Seek1(t *testing.T) {
 
 	path := t.TempDir()
 	name := buildSegmentName(0, 0, 0)
+	config := DefaultConfig
 	bufferSize := 1 << 20
 
 	testSegment_Write(t, path, true, 8, 256, 1<<10)
 
-	sr, err := newSegmentReader(path, name, bufferSize)
+	sr, err := newSegmentReader(path, name, config, bufferSize)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -478,11 +480,12 @@ func TestSegmentReader_Seek2(t *testing.T) {
 
 	path := t.TempDir()
 	name := buildSegmentName(0, 0, 0)
+	config := DefaultConfig
 	bufferSize := 1 << 10
 
 	testSegment_Write(t, path, true, 8, 256, 1<<10)
 
-	sr, err := newSegmentReader(path, name, bufferSize)
+	sr, err := newSegmentReader(path, name, config, bufferSize)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -528,11 +531,12 @@ func TestSegmentReader_Seek3(t *testing.T) {
 
 	path := t.TempDir()
 	name := buildSegmentName(0, 0, 0)
+	config := DefaultConfig
 	bufferSize := 1 << 10
 
 	testSegment_Write(t, path, true, 8, 256, 1<<10)
 
-	sr, err := newSegmentReader(path, name, bufferSize)
+	sr, err := newSegmentReader(path, name, config, bufferSize)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -578,11 +582,12 @@ func TestSegmentReader_Seek4(t *testing.T) {
 
 	path := t.TempDir()
 	name := buildSegmentName(0, 0, 0)
+	config := DefaultConfig
 	bufferSize := 1 << 10
 
 	testSegment_Write(t, path, true, 8, 256, 1<<10)
 
-	sr, err := newSegmentReader(path, name, bufferSize)
+	sr, err := newSegmentReader(path, name, config, bufferSize)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -600,11 +605,12 @@ func TestSegmentReader_Seek5(t *testing.T) {
 
 	path := t.TempDir()
 	name := buildSegmentName(0, 0, 0)
+	config := DefaultConfig
 	bufferSize := 1 << 10
 
 	testSegment_Write(t, path, true, 8, 256, 1<<10)
 
-	sr, err := newSegmentReader(path, name, bufferSize)
+	sr, err := newSegmentReader(path, name, config, bufferSize)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -622,6 +628,7 @@ func TestSegmentReader_CorruptIndex1(t *testing.T) {
 
 	path := t.TempDir()
 	name := buildSegmentName(0, 0, 0)
+	config := DefaultConfig
 	bufferSize := 1 << 10
 
 	testSegment_Write(t, path, true, 8, 256, 0)
@@ -650,7 +657,7 @@ func TestSegmentReader_CorruptIndex1(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	sr, err := newSegmentReader(path, name, bufferSize)
+	sr, err := newSegmentReader(path, name, config, bufferSize)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -667,6 +674,7 @@ func TestSegmentReader_CorruptIndex2(t *testing.T) {
 
 	path := t.TempDir()
 	name := buildSegmentName(0, 0, 0)
+	config := DefaultConfig
 	bufferSize := 1 << 10
 
 	testSegment_Write(t, path, true, 8, 256, 0)
@@ -680,7 +688,7 @@ func TestSegmentReader_CorruptIndex2(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	sr, err := newSegmentReader(path, name, bufferSize)
+	sr, err := newSegmentReader(path, name, config, bufferSize)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -697,6 +705,7 @@ func TestSegmentReader_CorruptRecord(t *testing.T) {
 
 	path := t.TempDir()
 	name := buildSegmentName(0, 0, 0)
+	config := DefaultConfig
 	bufferSize := 1 << 10
 
 	testSegment_Write(t, path, true, 8, 256, 1<<20)
@@ -725,7 +734,7 @@ func TestSegmentReader_CorruptRecord(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	sr, err := newSegmentReader(path, name, bufferSize)
+	sr, err := newSegmentReader(path, name, config, bufferSize)
 	if err != nil {
 		t.Fatal(err)
 	}

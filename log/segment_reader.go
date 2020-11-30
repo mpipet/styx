@@ -11,6 +11,7 @@ import (
 type segmentReader struct {
 	path                  string
 	name                  string
+	config                Config
 	bufferSize            int
 	recordsFile           *os.File
 	indexFile             *os.File
@@ -25,7 +26,7 @@ type segmentReader struct {
 	offset                int64
 }
 
-func newSegmentReader(path string, name string, bufferSize int) (sr *segmentReader, err error) {
+func newSegmentReader(path string, name string, config Config, bufferSize int) (sr *segmentReader, err error) {
 
 	pathname := filepath.Join(path, name)
 	recordsFilename := pathname + recordsSuffix
@@ -63,6 +64,7 @@ func newSegmentReader(path string, name string, bufferSize int) (sr *segmentRead
 	sr = &segmentReader{
 		path:                  path,
 		name:                  name,
+		config:                config,
 		bufferSize:            bufferSize,
 		recordsFile:           recordsFile,
 		indexFile:             indexFile,
@@ -103,8 +105,25 @@ func (sr *segmentReader) Tell() (position, offset int64) {
 func (sr *segmentReader) Read(r *Record) (n int, err error) {
 
 	n, err = sr.recordsAtomicReader.Read(r)
+
+	if err == io.ErrUnexpectedEOF {
+		return 0, errSegmentCorrupt
+	}
+
+	if err == recio.ErrCorrupt {
+		return 0, errSegmentCorrupt
+	}
+
+	if err == recio.ErrTooLarge {
+		return 0, errSegmentCorrupt
+	}
+
 	if err != nil {
 		return 0, err
+	}
+
+	if n > sr.config.MaxRecordSize {
+		return 0, errSegmentCorrupt
 	}
 
 	sr.position += 1
