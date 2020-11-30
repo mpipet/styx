@@ -37,6 +37,8 @@ type LogWriter struct {
 	syncerChan      chan struct{}
 	syncerDone      chan struct{}
 	logInfo         LogInfo
+	syncHandler     SyncHandler
+	errorHandler    ErrorHandler
 }
 
 func newLogWriter(l *Log, bufferSize int, syncMode SyncMode, ioMode recio.IOMode) (lw *LogWriter, err error) {
@@ -65,6 +67,8 @@ func newLogWriter(l *Log, bufferSize int, syncMode SyncMode, ioMode recio.IOMode
 		syncerChan:      make(chan struct{}, 1),
 		syncerDone:      make(chan struct{}),
 		logInfo:         LogInfo{},
+		syncHandler:     nil,
+		errorHandler:    nil,
 	}
 
 	lw.log.acquireWriterLock()
@@ -118,7 +122,11 @@ func (lw *LogWriter) expirer() {
 		case <-ticker.C:
 			err := lw.enforceMaxAge()
 			if err != nil {
-				panic(err)
+				if lw.errorHandler != nil {
+					lw.errorHandler(err)
+				} else {
+					panic(err)
+				}
 			}
 		}
 	}
@@ -129,7 +137,11 @@ func (lw *LogWriter) syncer() {
 	for _ = range lw.syncerChan {
 		err := lw.Sync()
 		if err != nil {
-			panic(err)
+			if lw.errorHandler != nil {
+				lw.errorHandler(err)
+			} else {
+				panic(err)
+			}
 		}
 	}
 
@@ -265,6 +277,10 @@ func (lw *LogWriter) Flush() (err error) {
 		lw.logInfo.EndPosition = lw.flushedPosition
 		lw.logInfo.EndOffset = lw.flushedOffset
 		lw.log.notify(lw.logInfo)
+
+		if lw.syncHandler != nil {
+			lw.syncHandler(lw.logInfo.EndPosition)
+		}
 	}
 
 	return nil
@@ -324,7 +340,21 @@ func (lw *LogWriter) Sync() (err error) {
 	lw.logInfo.EndOffset = flushedOffset
 	lw.log.notify(lw.logInfo)
 
+	if lw.syncHandler != nil {
+		lw.syncHandler(lw.logInfo.EndPosition)
+	}
+
 	return nil
+}
+
+func (lw *LogWriter) HandleSync(syncHandler SyncHandler) {
+
+	lw.syncHandler = syncHandler
+}
+
+func (lw *LogWriter) HandleError(errorHandler ErrorHandler) {
+
+	lw.errorHandler = errorHandler
 }
 
 func (lw *LogWriter) enforceMaxCount() (err error) {

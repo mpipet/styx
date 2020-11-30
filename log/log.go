@@ -29,6 +29,10 @@ const (
 	SeekEnd     SeekWhence = "end"     // Seek from the end of the log.
 )
 
+type SyncHandler func(position int64)
+
+type ErrorHandler func(err error)
+
 var (
 	ErrExist          = errors.New("log: already exists")
 	ErrNotExist       = errors.New("log: does not exist")
