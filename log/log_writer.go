@@ -4,8 +4,6 @@ import (
 	"sync"
 	"time"
 
-	// logger "log"
-
 	"gitlab.com/dataptive/styx/recio"
 )
 
