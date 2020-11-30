@@ -4,11 +4,13 @@ import (
 	"sync"
 	"time"
 
+	// logger "log"
+
 	"gitlab.com/dataptive/styx/recio"
 )
 
 const (
-	expireInterval  = time.Second
+	expireInterval  = 1 * time.Second
 	maxDirtyWriters = 50
 )
 
@@ -39,6 +41,8 @@ type LogWriter struct {
 	logInfo         LogInfo
 	syncHandler     SyncHandler
 	errorHandler    ErrorHandler
+	closed          bool
+	closedLock      sync.RWMutex
 }
 
 func newLogWriter(l *Log, bufferSize int, syncMode SyncMode, ioMode recio.IOMode) (lw *LogWriter, err error) {
@@ -69,6 +73,8 @@ func newLogWriter(l *Log, bufferSize int, syncMode SyncMode, ioMode recio.IOMode
 		logInfo:         LogInfo{},
 		syncHandler:     nil,
 		errorHandler:    nil,
+		closed:          false,
+		closedLock:      sync.RWMutex{},
 	}
 
 	lw.log.acquireWriterLock()
@@ -150,6 +156,15 @@ func (lw *LogWriter) syncer() {
 
 func (lw *LogWriter) Close() (err error) {
 
+	lw.closedLock.Lock()
+	defer lw.closedLock.Unlock()
+
+	if lw.closed {
+		return nil
+	}
+
+	lw.closed = true
+
 	lw.expirerStop <- struct{}{}
 	<-lw.expirerDone
 
@@ -172,6 +187,10 @@ func (lw *LogWriter) Tell() (position int64, offset int64) {
 }
 
 func (lw *LogWriter) Write(r *Record) (n int, err error) {
+
+	if lw.closed {
+		return 0, ErrClosed
+	}
 
 Retry:
 	if lw.mustFlush {
@@ -226,6 +245,13 @@ Retry:
 }
 
 func (lw *LogWriter) Flush() (err error) {
+
+	lw.closedLock.RLock()
+	defer lw.closedLock.RUnlock()
+
+	if lw.closed {
+		return ErrClosed
+	}
 
 	err = lw.enforceMaxCount()
 	if err != nil {
@@ -287,6 +313,16 @@ func (lw *LogWriter) Flush() (err error) {
 }
 
 func (lw *LogWriter) Sync() (err error) {
+
+	if lw.syncMode != SyncAuto {
+
+		lw.closedLock.RLock()
+		defer lw.closedLock.RUnlock()
+
+		if lw.closed {
+			return ErrClosed
+		}
+	}
 
 	if lw.syncMode == SyncUnsafe {
 		return nil

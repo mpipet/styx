@@ -45,6 +45,7 @@ var (
 	ErrInvalidWhence  = errors.New("log: invalid whence")
 	ErrLocked         = errors.New("log: already locked")
 	ErrOrphaned       = errors.New("log: orphaned")
+	ErrClosed         = errors.New("log: closed")
 )
 
 const (

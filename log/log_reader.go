@@ -2,6 +2,7 @@ package log
 
 import (
 	"io"
+	"sync"
 
 	"gitlab.com/dataptive/styx/recio"
 )
@@ -19,6 +20,8 @@ type LogReader struct {
 	mustFill       bool
 	statChan       chan LogInfo
 	logInfo        LogInfo
+	closed         bool
+	closedLock     sync.RWMutex
 }
 
 func newLogReader(l *Log, bufferSize int, follow bool, ioMode recio.IOMode) (lr *LogReader, err error) {
@@ -36,6 +39,8 @@ func newLogReader(l *Log, bufferSize int, follow bool, ioMode recio.IOMode) (lr 
 		mustFill:       false,
 		statChan:       make(chan LogInfo, 1),
 		logInfo:        LogInfo{},
+		closed:         false,
+		closedLock:     sync.RWMutex{},
 	}
 
 	lr.log.Subscribe(lr.statChan)
@@ -50,7 +55,18 @@ func newLogReader(l *Log, bufferSize int, follow bool, ioMode recio.IOMode) (lr 
 
 func (lr *LogReader) Close() (err error) {
 
+	lr.closedLock.Lock()
+	defer lr.closedLock.Unlock()
+
+	if lr.closed {
+		return nil
+	}
+
+	lr.closed = true
+
 	lr.log.Unsubscribe(lr.statChan)
+
+	close(lr.statChan)
 
 	if lr.segmentReader != nil {
 		err = lr.closeCurrentSegment()
@@ -68,6 +84,10 @@ func (lr *LogReader) Tell() (position int64, offset int64) {
 }
 
 func (lr *LogReader) Read(r *Record) (n int, err error) {
+
+	if lr.closed {
+		return 0, ErrClosed
+	}
 
 Retry:
 	if lr.mustFill {
@@ -120,10 +140,21 @@ func (lr *LogReader) Fill() (err error) {
 Retry:
 	if lr.follow && (lr.position >= lr.logInfo.EndPosition) {
 
-		logInfo := <-lr.statChan
+		logInfo, more := <-lr.statChan
+		if !more {
+			return ErrClosed
+		}
+
 		lr.logInfo = logInfo
 
 		goto Retry
+	}
+
+	lr.closedLock.RLock()
+	defer lr.closedLock.RUnlock()
+
+	if lr.closed {
+		return ErrClosed
 	}
 
 	err = lr.segmentReader.Fill()
@@ -137,6 +168,13 @@ Retry:
 }
 
 func (lr *LogReader) Seek(position int64, whence SeekWhence) (err error) {
+
+	lr.closedLock.RLock()
+	defer lr.closedLock.RUnlock()
+
+	if lr.closed {
+		return ErrClosed
+	}
 
 	var reference int64
 
