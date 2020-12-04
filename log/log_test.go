@@ -50,7 +50,7 @@ func benchmarkLog_Writer(b *testing.B, payloadSize int) {
 	}
 	defer l.Close()
 
-	lw, err := l.NewWriter(1 << 20, recio.ModeAuto)
+	lw, err := l.NewWriter(1<<20, recio.ModeAuto)
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -124,7 +124,7 @@ func benchmarkLog_Reader(b *testing.B, payloadSize int) {
 	}
 	defer l.Close()
 
-	lw, err := l.NewWriter(1 << 20, recio.ModeAuto)
+	lw, err := l.NewWriter(1<<20, recio.ModeAuto)
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -149,7 +149,7 @@ func benchmarkLog_Reader(b *testing.B, payloadSize int) {
 		b.Fatal(err)
 	}
 
-	lr, err := l.NewReader(1 << 20, true, recio.ModeAuto)
+	lr, err := l.NewReader(1<<20, true, recio.ModeAuto)
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -283,7 +283,7 @@ func testLog_Write(t *testing.T, path string, config Config, options Options, re
 	}
 	defer l.Close()
 
-	lw, err := l.NewWriter(1 << 20, recio.ModeAuto)
+	lw, err := l.NewWriter(1<<20, recio.ModeAuto)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -368,7 +368,7 @@ func TestLog_AgeRoll(t *testing.T) {
 
 	config.SegmentMaxAge = 1
 
-	testLog_Write(t, name, config, options, 10, 10, 110)
+	testLog_Write(t, name, config, options, 10, 10, 125)
 
 	names, err := listSegments(name)
 	if err != nil {
@@ -470,7 +470,7 @@ func TestLog_SyncAuto(t *testing.T) {
 	}
 	defer l.Close()
 
-	lw, err := l.NewWriter(1 << 20, recio.ModeAuto)
+	lw, err := l.NewWriter(1<<20, recio.ModeAuto)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -521,13 +521,13 @@ func TestLog_UnblockClose(t *testing.T) {
 	}
 	defer l.Close()
 
-	lw, err := l.NewWriter(1 << 20, recio.ModeAuto)
+	lw, err := l.NewWriter(1<<20, recio.ModeAuto)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer lw.Close()
 
-	lr, err := l.NewReader(1 << 10, true, recio.ModeAuto)
+	lr, err := l.NewReader(1<<10, true, recio.ModeAuto)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -563,13 +563,13 @@ func TestLog_UnblockFollow(t *testing.T) {
 	}
 	defer l.Close()
 
-	lw, err := l.NewWriter(1 << 20, recio.ModeAuto)
+	lw, err := l.NewWriter(1<<20, recio.ModeAuto)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer lw.Close()
 
-	lr, err := l.NewReader(1 << 10, true, recio.ModeAuto)
+	lr, err := l.NewReader(1<<10, true, recio.ModeAuto)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -635,7 +635,7 @@ func TestLog_MissingSegment(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	lr, err := l.NewReader(1 << 10, false, recio.ModeAuto)
+	lr, err := l.NewReader(1<<10, false, recio.ModeAuto)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -703,7 +703,7 @@ func TestLog_CorruptRecord(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	lr, err := l.NewReader(1 << 10, false, recio.ModeAuto)
+	lr, err := l.NewReader(1<<10, false, recio.ModeAuto)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -773,7 +773,7 @@ func TestLog_NegativeSize(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	lr, err := l.NewReader(1 << 10, false, recio.ModeAuto)
+	lr, err := l.NewReader(1<<10, false, recio.ModeAuto)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -843,7 +843,7 @@ func TestLog_TooLargeBigFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	lr, err := l.NewReader(1 << 10, false, recio.ModeAuto)
+	lr, err := l.NewReader(1<<10, false, recio.ModeAuto)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -913,7 +913,7 @@ func TestLog_TooLargeSmallFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	lr, err := l.NewReader(1 << 10, false, recio.ModeAuto)
+	lr, err := l.NewReader(1<<10, false, recio.ModeAuto)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1068,12 +1068,12 @@ func TestLog_ForceClose(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	lw, err := l.NewWriter(1 << 20, recio.ModeAuto)
+	lw, err := l.NewWriter(1<<20, recio.ModeAuto)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	lr, err := l.NewReader(1 << 20, false, recio.ModeAuto)
+	lr, err := l.NewReader(1<<20, false, recio.ModeAuto)
 	if err != nil {
 		t.Fatal(err)
 	}

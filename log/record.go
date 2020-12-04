@@ -16,9 +16,6 @@ const (
 // encoded size to stay below the MaxRecordSize hard limit.
 var ErrRecordTooLarge = errors.New("log: record too large")
 
-// ErrInvalidRecord is returned if encoded data cannot be properly decoded.
-var ErrInvalidRecord = errors.New("log: invalid record")
-
 // Record implements the encoding and decoding of length-prefixed byte buffers.
 //
 // Encoded log records are structured as follows.
