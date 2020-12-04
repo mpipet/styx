@@ -115,7 +115,7 @@ func (sw *segmentWriter) Tell() (position int64, offset int64) {
 
 func (sw *segmentWriter) Write(r *Record) (n int, err error) {
 
-	// Account for the fact that AtomicWriter will append a 4 bytes CRC.
+	// Account for the 4 bytes CRC added by AtomicWriter.
 	recordSize := r.Size() + 4
 
 	if recordSize > sw.config.MaxRecordSize {
@@ -214,11 +214,11 @@ func (sw *segmentWriter) seekEnd() (err error) {
 		}
 
 		if err == io.ErrUnexpectedEOF {
-			return errSegmentCorrupt
+			return ErrCorrupt
 		}
 
 		if err == recio.ErrCorrupt {
-			return errSegmentCorrupt
+			return ErrCorrupt
 		}
 
 		if err != nil {
@@ -238,7 +238,7 @@ func (sw *segmentWriter) seekEnd() (err error) {
 	relativeOffset := sw.lastIndexEntry.offset - sw.baseOffset
 
 	if relativeOffset > fi.Size() {
-		return errSegmentCorrupt
+		return ErrCorrupt
 	}
 
 	_, err = sw.recordsFile.Seek(relativeOffset, os.SEEK_SET)
@@ -262,15 +262,15 @@ func (sw *segmentWriter) seekEnd() (err error) {
 		}
 
 		if err == io.ErrUnexpectedEOF {
-			return errSegmentCorrupt
+			return ErrCorrupt
 		}
 
 		if err == recio.ErrTooLarge {
-			return errSegmentCorrupt
+			return ErrCorrupt
 		}
 
 		if err == recio.ErrCorrupt {
-			return errSegmentCorrupt
+			return ErrCorrupt
 		}
 
 		if err != nil {

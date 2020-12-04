@@ -96,13 +96,13 @@ func (config *Config) load(pathname string) (err error) {
 	n += 4
 
 	if version != 0 {
-		return ErrUnknownVersion
+		return ErrBadVersion
 	}
 
 	size := 2*4 + 7*8 + 4
 
 	if len(buffer) != size {
-		return ErrConfigCorrupt
+		return ErrCorrupt
 	}
 
 	config.MaxRecordSize = int(binary.BigEndian.Uint32(buffer[n:]))
@@ -134,7 +134,7 @@ func (config *Config) load(pathname string) (err error) {
 	computedCRC := crc32.Checksum(buffer[:n], castagnoliTable)
 
 	if crc != computedCRC {
-		return ErrConfigCorrupt
+		return ErrCorrupt
 	}
 
 	return nil

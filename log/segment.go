@@ -23,13 +23,13 @@ const (
 )
 
 var (
-	errSegmentCorrupt  = errors.New("log: segment corrupt")
 	errSegmentFull     = errors.New("log: segment full")
 	errSegmentNotExist = errors.New("log: segment does not exist")
 )
 
 type segmentDescriptor struct {
 	segmentName   string
+	segmentDirty  bool
 	basePosition  int64
 	baseOffset    int64
 	baseTimestamp int64
@@ -107,7 +107,7 @@ func deleteSegment(path, name string) (err error) {
 	err = os.Remove(pathname + recordsSuffix)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return errSegmentNotExist
+			return nil
 		}
 
 		return err

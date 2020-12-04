@@ -9,41 +9,24 @@ import (
 	"gitlab.com/dataptive/styx/recio"
 )
 
-// Benchmarks auto and unsafe writes of records of varying sizes to a
-// LogWriter.
-func BenchmarkLog_WriterUnsafe10(b *testing.B) {
-	benchmarkLog_Writer(b, 10, SyncUnsafe)
+// Benchmarks writes of records of varying sizes to a LogWriter.
+func BenchmarkLog_Writer10(b *testing.B) {
+	benchmarkLog_Writer(b, 10)
 }
 
-func BenchmarkLog_WriterUnsafe100(b *testing.B) {
-	benchmarkLog_Writer(b, 100, SyncUnsafe)
+func BenchmarkLog_Writer100(b *testing.B) {
+	benchmarkLog_Writer(b, 100)
 }
 
-func BenchmarkLog_WriterUnsafe500(b *testing.B) {
-	benchmarkLog_Writer(b, 500, SyncUnsafe)
+func BenchmarkLog_Writer500(b *testing.B) {
+	benchmarkLog_Writer(b, 500)
 }
 
-func BenchmarkLog_WriterUnsafe1000(b *testing.B) {
-	benchmarkLog_Writer(b, 1000, SyncUnsafe)
+func BenchmarkLog_Writer1000(b *testing.B) {
+	benchmarkLog_Writer(b, 1000)
 }
 
-func BenchmarkLog_WriterAuto10(b *testing.B) {
-	benchmarkLog_Writer(b, 10, SyncAuto)
-}
-
-func BenchmarkLog_WriterAuto100(b *testing.B) {
-	benchmarkLog_Writer(b, 100, SyncAuto)
-}
-
-func BenchmarkLog_WriterAuto500(b *testing.B) {
-	benchmarkLog_Writer(b, 500, SyncAuto)
-}
-
-func BenchmarkLog_WriterAuto1000(b *testing.B) {
-	benchmarkLog_Writer(b, 1000, SyncAuto)
-}
-
-func benchmarkLog_Writer(b *testing.B, payloadSize int, syncMode SyncMode) {
+func benchmarkLog_Writer(b *testing.B, payloadSize int) {
 
 	b.StopTimer()
 
@@ -67,7 +50,7 @@ func benchmarkLog_Writer(b *testing.B, payloadSize int, syncMode SyncMode) {
 	}
 	defer l.Close()
 
-	lw, err := l.NewWriter(1 << 20, syncMode, recio.ModeAuto)
+	lw, err := l.NewWriter(1 << 20, recio.ModeAuto)
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -141,7 +124,7 @@ func benchmarkLog_Reader(b *testing.B, payloadSize int) {
 	}
 	defer l.Close()
 
-	lw, err := l.NewWriter(1 << 20, SyncManual, recio.ModeAuto)
+	lw, err := l.NewWriter(1 << 20, recio.ModeAuto)
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -157,11 +140,6 @@ func benchmarkLog_Reader(b *testing.B, payloadSize int) {
 	}
 
 	err = lw.Flush()
-	if err != nil {
-		b.Fatal(err)
-	}
-
-	err = lw.Sync()
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -296,7 +274,7 @@ func TestLog_Delete(t *testing.T) {
 	}
 }
 
-// Helper functions for testing roll and retention.
+// Helper function for testing segment roll and retention.
 func testLog_Write(t *testing.T, path string, config Config, options Options, recordCount int, payloadSize int, delayMs int) {
 
 	l, err := Create(path, config, options)
@@ -305,11 +283,10 @@ func testLog_Write(t *testing.T, path string, config Config, options Options, re
 	}
 	defer l.Close()
 
-	lw, err := l.NewWriter(1 << 20, SyncManual, recio.ModeAuto)
+	lw, err := l.NewWriter(1 << 20, recio.ModeAuto)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer lw.Close()
 
 	payload := make([]byte, payloadSize)
 	r := Record(payload)
@@ -328,18 +305,13 @@ func testLog_Write(t *testing.T, path string, config Config, options Options, re
 		t.Fatal(err)
 	}
 
-	err = lw.Sync()
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	err = lw.Close()
 	if err != nil {
 		t.Fatal(err)
 	}
 }
 
-// Tests that segments roll correctly with a count policy.
+// Tests that segments roll correctly with a count limit.
 func TestLog_CountRoll(t *testing.T) {
 
 	path := t.TempDir()
@@ -362,7 +334,7 @@ func TestLog_CountRoll(t *testing.T) {
 	}
 }
 
-// Tests that segments roll correctly with a size policy.
+// Tests that segments roll correctly with a size limit.
 func TestLog_SizeRoll(t *testing.T) {
 
 	path := t.TempDir()
@@ -385,7 +357,7 @@ func TestLog_SizeRoll(t *testing.T) {
 	}
 }
 
-// Tests that segments roll correctly with an age policy.
+// Tests that segments roll correctly with an age limit.
 func TestLog_AgeRoll(t *testing.T) {
 
 	path := t.TempDir()
@@ -480,112 +452,7 @@ func TestLog_AgeRetention(t *testing.T) {
 	}
 }
 
-// Tests that records written in SyncUnsafe mode are correctly notified to log.
-func TestLog_SyncUnsafe(t *testing.T) {
-
-	payloadSize := 100
-	recordCount := 10
-
-	config := DefaultConfig
-	options := DefaultOptions
-
-	path := t.TempDir()
-	name := filepath.Join(path, "test")
-
-	l, err := Create(name, config, options)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer l.Close()
-
-	lw, err := l.NewWriter(1 << 20, SyncUnsafe, recio.ModeAuto)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer lw.Close()
-
-	payload := make([]byte, payloadSize)
-	r := Record(payload)
-
-	for i := 0; i < recordCount; i++ {
-		_, err := lw.Write(&r)
-		if err != nil {
-			t.Fatal(err)
-		}
-	}
-
-	err = lw.Flush()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	logInfo := l.Stat()
-
-	if logInfo.EndPosition != 10 {
-		t.Fatalf("log should end at position 10 but ends at %d", logInfo.EndPosition)
-	}
-
-	if logInfo.EndOffset != 1080 {
-		t.Fatalf("log should end at offset 1080 but ends at %d", logInfo.EndPosition)
-	}
-}
-
-// Tests that records written in SyncManual mode are correctly notified to log.
-func TestLog_SyncManual(t *testing.T) {
-
-	payloadSize := 100
-	recordCount := 10
-
-	config := DefaultConfig
-	options := DefaultOptions
-
-	path := t.TempDir()
-	name := filepath.Join(path, "test")
-
-	l, err := Create(name, config, options)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer l.Close()
-
-	lw, err := l.NewWriter(1 << 20, SyncManual, recio.ModeAuto)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer lw.Close()
-
-	payload := make([]byte, payloadSize)
-	r := Record(payload)
-
-	for i := 0; i < recordCount; i++ {
-		_, err := lw.Write(&r)
-		if err != nil {
-			t.Fatal(err)
-		}
-	}
-
-	err = lw.Flush()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = lw.Sync()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	logInfo := l.Stat()
-
-	if logInfo.EndPosition != 10 {
-		t.Fatalf("log should end at position 10 but ends at %d", logInfo.EndPosition)
-	}
-
-	if logInfo.EndOffset != 1080 {
-		t.Fatalf("log should end at offset 1080 but ends at %d", logInfo.EndPosition)
-	}
-}
-
-// Tests that records written in SyncAuto mode are correctly notified to log.
+// Tests that records written are correctly notified to log.
 func TestLog_SyncAuto(t *testing.T) {
 
 	payloadSize := 100
@@ -603,7 +470,7 @@ func TestLog_SyncAuto(t *testing.T) {
 	}
 	defer l.Close()
 
-	lw, err := l.NewWriter(1 << 20, SyncAuto, recio.ModeAuto)
+	lw, err := l.NewWriter(1 << 20, recio.ModeAuto)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -628,19 +495,19 @@ func TestLog_SyncAuto(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	logInfo := l.Stat()
+	stat := l.Stat()
 
-	if logInfo.EndPosition != 10 {
-		t.Fatalf("log should end at position 10 but ends at %d", logInfo.EndPosition)
+	if stat.EndPosition != 10 {
+		t.Fatalf("log should end at position 10 but ends at %d", stat.EndPosition)
 	}
 
-	if logInfo.EndOffset != 1080 {
-		t.Fatalf("log should end at offset 1080 but ends at %d", logInfo.EndPosition)
+	if stat.EndOffset != 1080 {
+		t.Fatalf("log should end at offset 1080 but ends at %d", stat.EndPosition)
 	}
 }
 
 // Tests that readers blocked on follow are correctly unblocked on close.
-func TestLog_CloseFollow(t *testing.T) {
+func TestLog_UnblockClose(t *testing.T) {
 
 	config := DefaultConfig
 	options := DefaultOptions
@@ -654,7 +521,7 @@ func TestLog_CloseFollow(t *testing.T) {
 	}
 	defer l.Close()
 
-	lw, err := l.NewWriter(1 << 20, SyncUnsafe, recio.ModeAuto)
+	lw, err := l.NewWriter(1 << 20, recio.ModeAuto)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -696,7 +563,7 @@ func TestLog_UnblockFollow(t *testing.T) {
 	}
 	defer l.Close()
 
-	lw, err := l.NewWriter(1 << 20, SyncUnsafe, recio.ModeAuto)
+	lw, err := l.NewWriter(1 << 20, recio.ModeAuto)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -927,8 +794,8 @@ func TestLog_NegativeSize(t *testing.T) {
 	}
 }
 
-// Tests that a record size above config MaxRecordSize is detected as a corrupt
-// record when reading from a file large enough to host the corrupt size.
+// Tests that a record size above configured MaxRecordSize is detected as a
+// corrupt record when reading from a file large enough to host the corrupt size.
 func TestLog_TooLargeBigFile(t *testing.T) {
 
 	path := t.TempDir()
@@ -997,8 +864,8 @@ func TestLog_TooLargeBigFile(t *testing.T) {
 	}
 }
 
-// Tests that a record size above config MaxRecordSize is detected as a corrupt
-// record when reading from a file too small to host it.
+// Tests that a record size above configured MaxRecordSize is detected as a
+// corrupt record when reading from a file too small to host it.
 func TestLog_TooLargeSmallFile(t *testing.T) {
 
 	path := t.TempDir()
@@ -1064,5 +931,165 @@ func TestLog_TooLargeSmallFile(t *testing.T) {
 
 	if er != ErrCorrupt {
 		t.Fatalf("read should have failed with error ErrCorrupt but got err = %s", err)
+	}
+}
+
+// Tests that backup produces the expected file.
+func TestLog_Backup(t *testing.T) {
+
+	path := t.TempDir()
+	name := filepath.Join(path, "test")
+
+	config := DefaultConfig
+	options := DefaultOptions
+
+	testLog_Write(t, name, config, options, 1000, 500, 0)
+
+	l, err := Open(name, options)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer l.Close()
+
+	backupPathname := filepath.Join(path, "backup.tgz")
+	f, err := os.OpenFile(backupPathname, os.O_RDWR|os.O_CREATE, os.FileMode(0644))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = l.Backup(f)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = f.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = os.Stat(backupPathname)
+	if err != nil {
+		if os.IsNotExist(err) {
+			t.Fatalf("should have backup file %s but got none", backupPathname)
+		}
+
+		t.Fatal(err)
+	}
+}
+
+// Tests that restore restores the expected log.
+func TestLog_Restore(t *testing.T) {
+
+	path := t.TempDir()
+	name := filepath.Join(path, "test")
+
+	config := DefaultConfig
+	options := DefaultOptions
+
+	testLog_Write(t, name, config, options, 1000, 500, 0)
+
+	l, err := Open(name, options)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	backupPathname := filepath.Join(path, "backup.tgz")
+	f, err := os.OpenFile(backupPathname, os.O_RDWR|os.O_CREATE, os.FileMode(0644))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = l.Backup(f)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = f.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = l.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = Delete(name)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	f, err = os.Open(backupPathname)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = Restore(name, f)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = f.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	l, err = Open(name, options)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer l.Close()
+
+	endPosition := int64(1000)
+	endOffset := int64(508000)
+
+	stat := l.Stat()
+
+	if stat.EndPosition != endPosition {
+		t.Fatalf("should have restored EndPosition = %d but got %d ", endPosition, stat.EndPosition)
+	}
+
+	if stat.EndOffset != endOffset {
+		t.Fatalf("should have restored EndOffset = %d but got %d ", endOffset, stat.EndOffset)
+	}
+}
+
+// Tests that readers and writers get closed on log close.
+func TestLog_ForceClose(t *testing.T) {
+
+	path := t.TempDir()
+	name := filepath.Join(path, "test")
+
+	config := DefaultConfig
+	options := DefaultOptions
+
+	l, err := Create(name, config, options)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	lw, err := l.NewWriter(1 << 20, recio.ModeAuto)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	lr, err := l.NewReader(1 << 20, false, recio.ModeAuto)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = l.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = lw.Flush()
+	if err != ErrClosed {
+		t.Fatalf("flush should have failed with error ErrClosed but got err = %s", err)
+	}
+
+	err = lr.Fill()
+	if err != ErrClosed {
+		t.Fatalf("fill should have failed with error ErrClosed but got err = %s", err)
 	}
 }

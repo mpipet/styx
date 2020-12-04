@@ -96,11 +96,11 @@ func (r *Record) Decode(p []byte) (n int, err error) {
 	n += 4
 
 	if size > MaxPayloadSize {
-		return 0, ErrRecordTooLarge
+		return 0, ErrCorrupt
 	}
 
 	if size < 0 {
-		return 0, ErrInvalidRecord
+		return 0, ErrCorrupt
 	}
 
 	// Check that we can decode the complete record.

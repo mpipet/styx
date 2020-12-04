@@ -11,42 +11,8 @@ import (
 	"time"
 
 	"gitlab.com/dataptive/styx/clock"
-	"gitlab.com/dataptive/styx/flock"
+	"gitlab.com/dataptive/styx/lockfile"
 	"gitlab.com/dataptive/styx/recio"
-)
-
-type SyncMode string
-
-const (
-	SyncManual SyncMode = "manual" // Sync is called manually by the user.
-	SyncAuto   SyncMode = "auto"   // A Sync is automatically queued after each Flush.
-	SyncUnsafe SyncMode = "unsafe" // Readers are notified after Flush without needing a Sync.
-)
-
-type SeekWhence string
-
-const (
-	SeekOrigin  SeekWhence = "origin"  // Seek from the log origin (position 0).
-	SeekStart   SeekWhence = "start"   // Seek from the first available record.
-	SeekCurrent SeekWhence = "current" // Seek from the current position.
-	SeekEnd     SeekWhence = "end"     // Seek from the end of the log.
-)
-
-type SyncHandler func(position int64)
-
-type ErrorHandler func(err error)
-
-var (
-	ErrExist          = errors.New("log: already exists")
-	ErrNotExist       = errors.New("log: does not exist")
-	ErrUnknownVersion = errors.New("log: unknown version")
-	ErrConfigCorrupt  = errors.New("log: config corrupt")
-	ErrCorrupt        = errors.New("log: corrupt")
-	ErrOutOfRange     = errors.New("log: position out of range")
-	ErrInvalidWhence  = errors.New("log: invalid whence")
-	ErrLocked         = errors.New("log: already locked")
-	ErrOrphaned       = errors.New("log: orphaned")
-	ErrClosed         = errors.New("log: closed")
 )
 
 const (
@@ -55,13 +21,35 @@ const (
 
 	dirPerm  = 0744
 	filePerm = 0644
+
+	expireInterval   = time.Second
+	maxDirtySegments = 5
 )
 
 var (
+	ErrExist      = errors.New("log: already exists")
+	ErrNotExist   = errors.New("log: does not exist")
+	ErrBadVersion = errors.New("log: bad version")
+	ErrCorrupt    = errors.New("log: corrupt")
+	ErrOutOfRange = errors.New("log: out of range")
+	ErrLagging    = errors.New("log: lagging")
+	ErrLocked     = errors.New("log: locked")
+	ErrOrphaned   = errors.New("log: orphaned")
+	ErrClosed     = errors.New("log: closed")
+
 	now = clock.New(time.Second)
 )
 
-type LogInfo struct {
+type Whence string
+
+const (
+	SeekOrigin  Whence = "origin"  // Seek from the log origin (position 0).
+	SeekStart   Whence = "start"   // Seek from the first available record.
+	SeekCurrent Whence = "current" // Seek from the current position.
+	SeekEnd     Whence = "end"     // Seek from the end of the log.
+)
+
+type Stat struct {
 	StartPosition  int64
 	StartOffset    int64
 	StartTimestamp int64
@@ -70,14 +58,24 @@ type LogInfo struct {
 }
 
 type Log struct {
-	path        string
-	config      Config
-	options     Options
-	logInfo     LogInfo
-	subscribers []chan LogInfo
-	notifyLock  sync.Mutex
-	writerLock  sync.Mutex
-	lockFile    *flock.Flock
+	path            string
+	config          Config
+	options         Options
+	segmentList     []segmentDescriptor
+	directoryDirty  bool
+	flushedPosition int64
+	flushedOffset   int64
+	syncedPosition  int64
+	syncedOffset    int64
+	stateLock       sync.RWMutex
+	subscribers     []chan struct{}
+	subscribersLock sync.Mutex
+	writeLock       sync.Mutex
+	lockFile        *lockfile.LockFile
+	writer          *LogWriter
+	writerLock      sync.Mutex
+	readers         []*LogReader
+	readersLock     sync.Mutex
 }
 
 func Create(path string, config Config, options Options) (l *Log, err error) {
@@ -91,27 +89,23 @@ func Create(path string, config Config, options Options) (l *Log, err error) {
 		return nil, err
 	}
 
-	// Sync parent directory
 	parentPath := filepath.Dir(path)
 	err = syncDirectory(parentPath)
 	if err != nil {
 		return nil, err
 	}
 
-	// Store config file
 	pathname := filepath.Join(path, configFilename)
 	err = config.dump(pathname)
 	if err != nil {
 		return nil, err
 	}
 
-	// Sync config file
 	err = syncFile(pathname)
 	if err != nil {
 		return nil, err
 	}
 
-	// Sync log directory
 	err = syncDirectory(path)
 	if err != nil {
 		return nil, err
@@ -129,9 +123,7 @@ func Open(path string, options Options) (l *Log, err error) {
 
 	config := Config{}
 
-	// Load config file
 	pathname := filepath.Join(path, configFilename)
-
 	err = config.load(pathname)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -157,7 +149,6 @@ func Delete(path string) (err error) {
 	}
 
 	parentPath := filepath.Dir(path)
-
 	err = syncDirectory(parentPath)
 	if err != nil {
 		return err
@@ -178,7 +169,6 @@ func Restore(path string, r io.Reader) (err error) {
 	}
 
 	parentDirname := filepath.Dir(path)
-
 	err = syncDirectory(parentDirname)
 	if err != nil {
 		panic(err)
@@ -203,7 +193,6 @@ func Restore(path string, r io.Reader) (err error) {
 		}
 
 		pathname := filepath.Join(path, header.Name)
-
 		f, err := os.OpenFile(pathname, os.O_WRONLY|os.O_CREATE, os.FileMode(header.Mode))
 		if err != nil {
 			return err
@@ -236,14 +225,24 @@ func Restore(path string, r io.Reader) (err error) {
 func newLog(path string, config Config, options Options) (l *Log, err error) {
 
 	l = &Log{
-		path:        path,
-		config:      config,
-		options:     options,
-		logInfo:     LogInfo{},
-		subscribers: []chan LogInfo{},
-		notifyLock:  sync.Mutex{},
-		writerLock:  sync.Mutex{},
-		lockFile:    nil,
+		path:            path,
+		config:          config,
+		options:         options,
+		segmentList:     []segmentDescriptor{},
+		directoryDirty:  false,
+		flushedPosition: 0,
+		flushedOffset:   0,
+		syncedPosition:  0,
+		syncedOffset:    0,
+		stateLock:       sync.RWMutex{},
+		subscribers:     []chan struct{}{},
+		subscribersLock: sync.Mutex{},
+		writeLock:       sync.Mutex{},
+		lockFile:        nil,
+		writer:          nil,
+		writerLock:      sync.Mutex{},
+		readers:         []*LogReader{},
+		readersLock:     sync.Mutex{},
 	}
 
 	err = l.acquireFileLock()
@@ -251,7 +250,12 @@ func newLog(path string, config Config, options Options) (l *Log, err error) {
 		return nil, err
 	}
 
-	err = l.initializeStat()
+	err = l.updateSegmentList()
+	if err != nil {
+		return nil, err
+	}
+
+	err = l.initialize()
 	if err != nil {
 		return nil, err
 	}
@@ -261,6 +265,16 @@ func newLog(path string, config Config, options Options) (l *Log, err error) {
 
 func (l *Log) Close() (err error) {
 
+	err = l.forceWriterClose()
+	if err != nil {
+		return err
+	}
+
+	err = l.forceReadersClose()
+	if err != nil {
+		return err
+	}
+
 	err = l.releaseFileLock()
 	if err != nil {
 		return err
@@ -269,9 +283,27 @@ func (l *Log) Close() (err error) {
 	return nil
 }
 
-func (l *Log) NewWriter(bufferSize int, syncMode SyncMode, ioMode recio.IOMode) (lw *LogWriter, err error) {
+func (l *Log) Stat() (stat Stat) {
 
-	lw, err = newLogWriter(l, bufferSize, syncMode, ioMode)
+	l.stateLock.Lock()
+	defer l.stateLock.Unlock()
+
+	first := l.segmentList[0]
+
+	stat = Stat{
+		StartPosition:  first.basePosition,
+		StartOffset:    first.baseOffset,
+		StartTimestamp: first.baseTimestamp,
+		EndPosition:    l.syncedPosition,
+		EndOffset:      l.syncedOffset,
+	}
+
+	return stat
+}
+
+func (l *Log) NewWriter(bufferSize int, ioMode recio.IOMode) (lw *LogWriter, err error) {
+
+	lw, err = newLogWriter(l, bufferSize, ioMode)
 	if err != nil {
 		return nil, err
 	}
@@ -289,72 +321,10 @@ func (l *Log) NewReader(bufferSize int, follow bool, ioMode recio.IOMode) (lr *L
 	return lr, nil
 }
 
-func (l *Log) notify(logInfo LogInfo) {
-
-	l.notifyLock.Lock()
-	defer l.notifyLock.Unlock()
-
-	l.logInfo = logInfo
-
-	for _, subscriber := range l.subscribers {
-		select {
-		case <-subscriber:
-		default:
-		}
-		subscriber <- logInfo
-	}
-}
-
-func (l *Log) Stat() (logInfo LogInfo) {
-
-	l.notifyLock.Lock()
-	defer l.notifyLock.Unlock()
-
-	logInfo = l.logInfo
-
-	return logInfo
-}
-
-func (l *Log) Subscribe(subscriber chan LogInfo) {
-
-	l.notifyLock.Lock()
-	defer l.notifyLock.Unlock()
-
-	select {
-	case <-subscriber:
-	default:
-	}
-
-	subscriber <- l.logInfo
-
-	l.subscribers = append(l.subscribers, subscriber)
-}
-
-func (l *Log) Unsubscribe(subscriber chan LogInfo) {
-
-	l.notifyLock.Lock()
-	defer l.notifyLock.Unlock()
-
-	pos := -1
-	for i, s := range l.subscribers {
-		if s == subscriber {
-			pos = i
-			break
-		}
-	}
-
-	if pos == -1 {
-		return
-	}
-
-	l.subscribers[pos] = l.subscribers[len(l.subscribers)-1]
-	l.subscribers = l.subscribers[:len(l.subscribers)-1]
-}
-
 func (l *Log) Backup(w io.Writer) (err error) {
 
 	// Checkpoint current log state.
-	logInfo := l.Stat()
+	stat := l.Stat()
 
 	// Build a list a index and records file handles.
 	names, err := listSegments(l.path)
@@ -470,7 +440,7 @@ func (l *Log) Backup(w io.Writer) (err error) {
 	header = &tar.Header{
 		Name: fi.Name(),
 		Mode: int64(fi.Mode().Perm()),
-		Size: logInfo.EndOffset - baseOffset,
+		Size: stat.EndOffset - baseOffset,
 	}
 
 	err = tw.WriteHeader(header)
@@ -529,7 +499,7 @@ func (l *Log) Backup(w io.Writer) (err error) {
 
 	// Find the last index entry matching the checkpointed state and copy
 	// the last index file up to this point.
-	indexBufferedReader := recio.NewBufferedReader(lastIndexFile, 1 << 20, recio.ModeAuto)
+	indexBufferedReader := recio.NewBufferedReader(lastIndexFile, 1<<20, recio.ModeAuto)
 	indexAtomicReader := recio.NewAtomicReader(indexBufferedReader)
 
 	ie := indexEntry{}
@@ -546,7 +516,7 @@ func (l *Log) Backup(w io.Writer) (err error) {
 			return err
 		}
 
-		if ie.position > logInfo.EndOffset {
+		if ie.position > stat.EndOffset {
 			break
 		}
 
@@ -602,44 +572,97 @@ func (l *Log) Backup(w io.Writer) (err error) {
 	return nil
 }
 
-func (l *Log) initializeStat() (err error) {
+func (l *Log) subscribe(subscriber chan struct{}) {
 
-	lw, err := l.NewWriter(0, SyncManual, recio.ModeAuto)
+	l.subscribersLock.Lock()
+	defer l.subscribersLock.Unlock()
+
+	l.subscribers = append(l.subscribers, subscriber)
+}
+
+func (l *Log) unsubscribe(subscriber chan struct{}) {
+
+	l.subscribersLock.Lock()
+	defer l.subscribersLock.Unlock()
+
+	pos := -1
+	for i, s := range l.subscribers {
+		if s == subscriber {
+			pos = i
+			break
+		}
+	}
+
+	if pos == -1 {
+		return
+	}
+
+	l.subscribers[pos] = l.subscribers[len(l.subscribers)-1]
+	l.subscribers = l.subscribers[:len(l.subscribers)-1]
+}
+
+func (l *Log) notify() {
+
+	l.subscribersLock.Lock()
+	defer l.subscribersLock.Unlock()
+
+	for _, subscriber := range l.subscribers {
+		select {
+		case <-subscriber:
+		default:
+		}
+		subscriber <- struct{}{}
+	}
+}
+
+func (l *Log) initialize() (err error) {
+
+	lw, err := l.NewWriter(0, recio.ModeAuto)
 	if err != nil {
 		return err
 	}
-
-	err = lw.Close()
-	if err != nil {
-		return err
-	}
+	defer lw.Close()
 
 	return nil
 }
 
-func (l *Log) acquireWriterLock() {
+func (l *Log) updateSegmentList() (err error) {
 
-	l.writerLock.Lock()
+	l.stateLock.Lock()
+	defer l.stateLock.Unlock()
+
+	descriptors, err := listSegmentDescriptors(l.path)
+	if err != nil {
+		return err
+	}
+
+	l.segmentList = descriptors
+
+	return nil
 }
 
-func (l *Log) releaseWriterLock() {
+func (l *Log) acquireWriteLock() {
 
-	l.writerLock.Unlock()
+	l.writeLock.Lock()
+}
+
+func (l *Log) releaseWriteLock() {
+
+	l.writeLock.Unlock()
 }
 
 func (l *Log) acquireFileLock() (err error) {
 
 	pathname := filepath.Join(l.path, lockFilename)
-
-	l.lockFile = flock.New(pathname, os.FileMode(filePerm))
+	l.lockFile = lockfile.New(pathname, os.FileMode(filePerm))
 
 	err = l.lockFile.Acquire()
 
-	if err == flock.ErrLocked {
+	if err == lockfile.ErrLocked {
 		return ErrLocked
 	}
 
-	if err == flock.ErrOrphaned {
+	if err == lockfile.ErrOrphaned {
 		l.lockFile.Clear()
 		return ErrOrphaned
 	}
@@ -656,6 +679,91 @@ func (l *Log) releaseFileLock() (err error) {
 	err = l.lockFile.Release()
 	if err != nil {
 		return err
+	}
+
+	err = l.lockFile.Clear()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (l *Log) registerWriter(lw *LogWriter) {
+
+	l.writerLock.Lock()
+	defer l.writerLock.Unlock()
+
+	l.writer = lw
+}
+
+func (l *Log) unregisterWriter(lw *LogWriter) {
+
+	l.writerLock.Lock()
+	defer l.writerLock.Unlock()
+
+	l.writer = nil
+}
+
+func (l *Log) registerReader(lr *LogReader) {
+
+	l.readersLock.Lock()
+	defer l.readersLock.Unlock()
+
+	l.readers = append(l.readers, lr)
+}
+
+func (l *Log) unregisterReader(lr *LogReader) {
+
+	l.readersLock.Lock()
+	defer l.readersLock.Unlock()
+
+	pos := -1
+	for i, r := range l.readers {
+		if r == lr {
+			pos = i
+			break
+		}
+	}
+
+	if pos == -1 {
+		return
+	}
+
+	l.readers[pos] = l.readers[len(l.readers)-1]
+	l.readers = l.readers[:len(l.readers)-1]
+}
+
+func (l *Log) forceWriterClose() (err error) {
+
+	l.writerLock.Lock()
+	writer := l.writer
+	l.writerLock.Unlock()
+
+	if writer != nil {
+		err = writer.Close()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (l *Log) forceReadersClose() (err error) {
+
+	l.readersLock.Lock()
+	readers := []*LogReader{}
+	for _, reader := range l.readers {
+		readers = append(readers, reader)
+	}
+	l.readersLock.Unlock()
+
+	for _, reader := range readers {
+		err = reader.Close()
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

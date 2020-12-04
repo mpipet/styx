@@ -742,7 +742,7 @@ func TestSegmentReader_CorruptRecord(t *testing.T) {
 
 	err = sr.SeekPosition(8)
 
-	if err != errSegmentCorrupt {
-		t.Fatalf("seek should have failed with error errSegmentCorrupt but got err = %s", err)
+	if err != ErrCorrupt {
+		t.Fatalf("seek should have failed with error ErrCorrupt but got err = %s", err)
 	}
 }

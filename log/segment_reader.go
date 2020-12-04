@@ -47,7 +47,7 @@ func newSegmentReader(path string, name string, config Config, bufferSize int) (
 	indexFile, err := os.OpenFile(indexFilename, os.O_RDONLY, os.FileMode(0))
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil, errSegmentCorrupt
+			return nil, ErrCorrupt
 		}
 
 		return nil, err
@@ -107,15 +107,15 @@ func (sr *segmentReader) Read(r *Record) (n int, err error) {
 	n, err = sr.recordsAtomicReader.Read(r)
 
 	if err == io.ErrUnexpectedEOF {
-		return 0, errSegmentCorrupt
+		return 0, ErrCorrupt
 	}
 
 	if err == recio.ErrCorrupt {
-		return 0, errSegmentCorrupt
+		return 0, ErrCorrupt
 	}
 
 	if err == recio.ErrTooLarge {
-		return 0, errSegmentCorrupt
+		return 0, ErrCorrupt
 	}
 
 	if err != nil {
@@ -123,7 +123,7 @@ func (sr *segmentReader) Read(r *Record) (n int, err error) {
 	}
 
 	if n > sr.config.MaxRecordSize {
-		return 0, errSegmentCorrupt
+		return 0, ErrCorrupt
 	}
 
 	sr.position += 1
@@ -249,15 +249,15 @@ func (sr *segmentReader) SeekPosition(position int64) (err error) {
 		}
 
 		if err == io.ErrUnexpectedEOF {
-			return errSegmentCorrupt
+			return ErrCorrupt
 		}
 
 		if err == recio.ErrTooLarge {
-			return errSegmentCorrupt
+			return ErrCorrupt
 		}
 
 		if err == recio.ErrCorrupt {
-			return errSegmentCorrupt
+			return ErrCorrupt
 		}
 
 		if err != nil {

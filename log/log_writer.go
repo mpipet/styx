@@ -7,82 +7,54 @@ import (
 	"gitlab.com/dataptive/styx/recio"
 )
 
-const (
-	expireInterval  = 1 * time.Second
-	maxDirtyWriters = 50
-)
+type ErrorHandler func(err error)
+type SyncHandler func(position int64)
+
+type breakCondition func(segmentDescriptor) bool
 
 type LogWriter struct {
-	log             *Log
-	bufferSize      int
-	syncMode        SyncMode
-	ioMode          recio.IOMode
-	segmentList     []segmentDescriptor
-	segmentLock     sync.Mutex
-	segmentWriter   *segmentWriter
-	buffered        int64
-	position        int64
-	offset          int64
-	mustFlush       bool
-	mustRoll        bool
-	expirerStop     chan struct{}
-	expirerDone     chan struct{}
-	currentName     string
-	currentDirty    bool
-	directoryDirty  bool
-	dirtyList       []string
-	flushedPosition int64
-	flushedOffset   int64
-	dirtyLock       sync.Mutex
-	syncerChan      chan struct{}
-	syncerDone      chan struct{}
-	logInfo         LogInfo
-	syncHandler     SyncHandler
-	errorHandler    ErrorHandler
-	closed          bool
-	closedLock      sync.RWMutex
+	log           *Log
+	bufferSize    int
+	ioMode        recio.IOMode
+	segmentWriter *segmentWriter
+	position      int64
+	offset        int64
+	mustFlush     bool
+	mustRoll      bool
+	expirerStop   chan struct{}
+	expirerDone   chan struct{}
+	syncerChan    chan struct{}
+	syncerDone    chan struct{}
+	closed        bool
+	closeLock     sync.Mutex
+	errorHandler  ErrorHandler
+	syncHandler   SyncHandler
 }
 
-func newLogWriter(l *Log, bufferSize int, syncMode SyncMode, ioMode recio.IOMode) (lw *LogWriter, err error) {
+func newLogWriter(l *Log, bufferSize int, ioMode recio.IOMode) (lw *LogWriter, err error) {
 
 	lw = &LogWriter{
-		log:             l,
-		bufferSize:      bufferSize,
-		syncMode:        syncMode,
-		ioMode:          ioMode,
-		segmentList:     []segmentDescriptor{},
-		segmentLock:     sync.Mutex{},
-		buffered:        0,
-		position:        0,
-		offset:          0,
-		mustFlush:       false,
-		mustRoll:        false,
-		expirerStop:     make(chan struct{}),
-		expirerDone:     make(chan struct{}),
-		currentName:     "",
-		currentDirty:    false,
-		directoryDirty:  false,
-		dirtyList:       []string{},
-		flushedPosition: 0,
-		flushedOffset:   0,
-		dirtyLock:       sync.Mutex{},
-		syncerChan:      make(chan struct{}, 1),
-		syncerDone:      make(chan struct{}),
-		logInfo:         LogInfo{},
-		syncHandler:     nil,
-		errorHandler:    nil,
-		closed:          false,
-		closedLock:      sync.RWMutex{},
+		log:           l,
+		bufferSize:    bufferSize,
+		ioMode:        ioMode,
+		segmentWriter: nil,
+		position:      0,
+		offset:        0,
+		mustFlush:     false,
+		mustRoll:      false,
+		expirerStop:   make(chan struct{}),
+		expirerDone:   make(chan struct{}),
+		syncerChan:    make(chan struct{}, 1),
+		syncerDone:    make(chan struct{}),
+		closed:        false,
+		closeLock:     sync.Mutex{},
+		errorHandler:  nil,
+		syncHandler:   nil,
 	}
 
-	lw.log.acquireWriterLock()
+	lw.log.acquireWriteLock()
 
-	err = lw.updateSegmentList()
-	if err != nil {
-		return nil, err
-	}
-
-	if len(lw.segmentList) > 0 {
+	if lw.hasSegments() {
 		err = lw.openLastSegment()
 		if err != nil {
 			return nil, err
@@ -94,74 +66,26 @@ func newLogWriter(l *Log, bufferSize int, syncMode SyncMode, ioMode recio.IOMode
 		}
 	}
 
-	lw.flushedPosition = lw.position
-	lw.flushedOffset = lw.offset
-
-	first := lw.segmentList[0]
-	lw.logInfo = LogInfo{
-		StartPosition:  first.basePosition,
-		StartOffset:    first.baseOffset,
-		StartTimestamp: first.baseTimestamp,
-		EndPosition:    lw.flushedPosition,
-		EndOffset:      lw.flushedOffset,
-	}
-	lw.log.notify(lw.logInfo)
-
 	go lw.expirer()
 	go lw.syncer()
+
+	lw.log.registerWriter(lw)
 
 	return lw, nil
 }
 
-func (lw *LogWriter) expirer() {
-
-	ticker := time.NewTicker(expireInterval)
-
-	for {
-		select {
-		case <-lw.expirerStop:
-			ticker.Stop()
-			lw.expirerDone <- struct{}{}
-			return
-		case <-ticker.C:
-			err := lw.enforceMaxAge()
-			if err != nil {
-				if lw.errorHandler != nil {
-					lw.errorHandler(err)
-				} else {
-					panic(err)
-				}
-			}
-		}
-	}
-}
-
-func (lw *LogWriter) syncer() {
-
-	for _ = range lw.syncerChan {
-		err := lw.Sync()
-		if err != nil {
-			if lw.errorHandler != nil {
-				lw.errorHandler(err)
-			} else {
-				panic(err)
-			}
-		}
-	}
-
-	lw.syncerDone <- struct{}{}
-}
-
 func (lw *LogWriter) Close() (err error) {
 
-	lw.closedLock.Lock()
-	defer lw.closedLock.Unlock()
+	lw.closeLock.Lock()
+	defer lw.closeLock.Unlock()
 
 	if lw.closed {
 		return nil
 	}
 
 	lw.closed = true
+
+	lw.log.unregisterWriter(lw)
 
 	lw.expirerStop <- struct{}{}
 	<-lw.expirerDone
@@ -174,9 +98,19 @@ func (lw *LogWriter) Close() (err error) {
 		return err
 	}
 
-	lw.log.releaseWriterLock()
+	lw.log.releaseWriteLock()
 
 	return nil
+}
+
+func (lw *LogWriter) HandleError(h ErrorHandler) {
+
+	lw.errorHandler = h
+}
+
+func (lw *LogWriter) HandleSync(h SyncHandler) {
+
+	lw.syncHandler = h
 }
 
 func (lw *LogWriter) Tell() (position int64, offset int64) {
@@ -219,12 +153,14 @@ Retry:
 	n, err = lw.segmentWriter.Write(r)
 
 	if err == recio.ErrMustFlush {
+
 		lw.mustFlush = true
 
 		goto Retry
 	}
 
 	if err == errSegmentFull {
+
 		lw.mustFlush = true
 		lw.mustRoll = true
 
@@ -235,7 +171,6 @@ Retry:
 		return n, err
 	}
 
-	lw.buffered += 1
 	lw.position += 1
 	lw.offset += int64(n)
 
@@ -244,8 +179,8 @@ Retry:
 
 func (lw *LogWriter) Flush() (err error) {
 
-	lw.closedLock.RLock()
-	defer lw.closedLock.RUnlock()
+	lw.closeLock.Lock()
+	defer lw.closeLock.Unlock()
 
 	if lw.closed {
 		return ErrClosed
@@ -266,92 +201,60 @@ func (lw *LogWriter) Flush() (err error) {
 		return err
 	}
 
-	lw.buffered = 0
 	lw.mustFlush = false
 
-	lw.dirtyLock.Lock()
-	defer lw.dirtyLock.Unlock()
+	lw.updateFlushProgress(lw.position, lw.offset)
 
-	lw.currentDirty = true
-	lw.flushedPosition = lw.position
-	lw.flushedOffset = lw.offset
-
-	forceSync := false
-	if len(lw.dirtyList) >= maxDirtyWriters {
-		forceSync = true
-	}
-
-	if lw.syncMode == SyncAuto {
-		if !forceSync {
-			select {
-			case <-lw.syncerChan:
-			default:
-			}
-		}
-		lw.syncerChan <- struct{}{}
-	}
-
-	if lw.syncMode == SyncManual {
-		if forceSync {
-			lw.syncerChan <- struct{}{}
+	if lw.getDirtyCount() < maxDirtySegments {
+		select {
+		case <-lw.syncerChan:
+		default:
 		}
 	}
 
-	if lw.syncMode == SyncUnsafe {
-		lw.logInfo.EndPosition = lw.flushedPosition
-		lw.logInfo.EndOffset = lw.flushedOffset
-		lw.log.notify(lw.logInfo)
-
-		if lw.syncHandler != nil {
-			lw.syncHandler(lw.logInfo.EndPosition)
-		}
-	}
+	lw.syncerChan <- struct{}{}
 
 	return nil
 }
 
-func (lw *LogWriter) Sync() (err error) {
+func (lw *LogWriter) getDirtyCount() (count int) {
 
-	if lw.syncMode != SyncAuto {
+	lw.log.stateLock.Lock()
+	defer lw.log.stateLock.Unlock()
 
-		lw.closedLock.RLock()
-		defer lw.closedLock.RUnlock()
-
-		if lw.closed {
-			return ErrClosed
+	count = 0
+	for _, desc := range lw.log.segmentList {
+		if desc.segmentDirty {
+			count += 1
 		}
 	}
 
-	if lw.syncMode == SyncUnsafe {
-		return nil
-	}
+	return count
+}
+
+func (lw *LogWriter) sync() (err error) {
 
 	lw.log.options.SyncLock.Lock()
 	defer lw.log.options.SyncLock.Unlock()
 
-	lw.dirtyLock.Lock()
+	lw.log.stateLock.Lock()
 
-	currentName := lw.currentName
-	currentDirty := lw.currentDirty
-	directoryDirty := lw.directoryDirty
-	dirtyList := lw.dirtyList
-	flushedPosition := lw.flushedPosition
-	flushedOffset := lw.flushedOffset
+	directoryDirty := lw.log.directoryDirty
+	lw.log.directoryDirty = false
 
-	lw.currentDirty = false
-	lw.directoryDirty = false
-	lw.dirtyList = lw.dirtyList[:0]
+	dirtySegments := []string{}
 
-	lw.dirtyLock.Unlock()
-
-	if len(dirtyList) > 0 {
-		for _, segmentName := range dirtyList {
-			err = syncSegment(lw.log.path, segmentName)
-			if err != nil {
-				return err
-			}
+	for i := 0; i < len(lw.log.segmentList); i++ {
+		if lw.log.segmentList[i].segmentDirty {
+			dirtySegments = append(dirtySegments, lw.log.segmentList[i].segmentName)
+			lw.log.segmentList[i].segmentDirty = false
 		}
 	}
+
+	flushedPosition := lw.log.flushedPosition
+	flushedOffset := lw.log.flushedOffset
+
+	lw.log.stateLock.Unlock()
 
 	if directoryDirty {
 		err = syncDirectory(lw.log.path)
@@ -360,141 +263,82 @@ func (lw *LogWriter) Sync() (err error) {
 		}
 	}
 
-	if currentDirty {
-		err = syncSegment(lw.log.path, currentName)
+	for _, segmentName := range dirtySegments {
+		err = syncSegment(lw.log.path, segmentName)
 		if err != nil {
 			return err
 		}
 	}
 
-	lw.segmentLock.Lock()
-	defer lw.segmentLock.Unlock()
-
-	lw.logInfo.EndPosition = flushedPosition
-	lw.logInfo.EndOffset = flushedOffset
-	lw.log.notify(lw.logInfo)
-
-	if lw.syncHandler != nil {
-		lw.syncHandler(lw.logInfo.EndPosition)
-	}
+	lw.updateSyncProgress(flushedPosition, flushedOffset)
 
 	return nil
 }
 
-func (lw *LogWriter) HandleSync(syncHandler SyncHandler) {
+func (lw *LogWriter) updateFlushProgress(position int64, offset int64) {
 
-	lw.syncHandler = syncHandler
+	lw.log.stateLock.Lock()
+	defer lw.log.stateLock.Unlock()
+
+	current := len(lw.log.segmentList) - 1
+	lw.log.segmentList[current].segmentDirty = true
+
+	lw.log.flushedPosition = position
+	lw.log.flushedOffset = offset
 }
 
-func (lw *LogWriter) HandleError(errorHandler ErrorHandler) {
+func (lw *LogWriter) updateSyncProgress(position int64, offset int64) {
 
-	lw.errorHandler = errorHandler
+	lw.log.stateLock.Lock()
+	defer lw.log.stateLock.Unlock()
+
+	lw.log.syncedPosition = position
+	lw.log.syncedOffset = offset
+
+	lw.log.notify()
 }
 
 func (lw *LogWriter) enforceMaxCount() (err error) {
-
-	lw.segmentLock.Lock()
-	defer lw.segmentLock.Unlock()
 
 	if lw.log.config.LogMaxCount == -1 {
 		return nil
 	}
 
-	if len(lw.segmentList) <= 1 {
-		return nil
-	}
-
 	expiredPosition := lw.position - lw.log.config.LogMaxCount
 
-	// Last segment should never be deleted.
-	descriptors := lw.segmentList[:len(lw.segmentList)-1]
+	err = lw.deleteSegments(func(desc segmentDescriptor) bool {
+		return desc.basePosition >= expiredPosition
+	})
 
-	pos := 0
-	for _, desc := range descriptors {
-		if desc.basePosition >= expiredPosition {
-			break
-		}
-		pos += 1
-	}
-
-	if pos == 0 {
-		return nil
-	}
-
-	deleteList := lw.segmentList[:pos]
-	lw.segmentList = lw.segmentList[pos:]
-
-	err = lw.deleteSegments(deleteList)
 	if err != nil {
 		return err
 	}
-
-	first := lw.segmentList[0]
-	lw.logInfo.StartPosition = first.basePosition
-	lw.logInfo.StartOffset = first.baseOffset
-	lw.logInfo.StartTimestamp = first.baseTimestamp
-	lw.log.notify(lw.logInfo)
 
 	return nil
 }
 
 func (lw *LogWriter) enforceMaxSize() (err error) {
 
-	lw.segmentLock.Lock()
-	defer lw.segmentLock.Unlock()
-
 	if lw.log.config.LogMaxSize == -1 {
-		return nil
-	}
-
-	if len(lw.segmentList) <= 1 {
 		return nil
 	}
 
 	expiredOffset := lw.offset - lw.log.config.LogMaxSize
 
-	// Last segment should never be deleted.
-	descriptors := lw.segmentList[:len(lw.segmentList)-1]
+	err = lw.deleteSegments(func(desc segmentDescriptor) bool {
+		return desc.baseOffset >= expiredOffset
+	})
 
-	pos := 0
-	for _, desc := range descriptors {
-		if desc.baseOffset >= expiredOffset {
-			break
-		}
-		pos += 1
-	}
-
-	if pos == 0 {
-		return nil
-	}
-
-	deleteList := lw.segmentList[:pos]
-	lw.segmentList = lw.segmentList[pos:]
-
-	err = lw.deleteSegments(deleteList)
 	if err != nil {
 		return err
 	}
-
-	first := lw.segmentList[0]
-	lw.logInfo.StartPosition = first.basePosition
-	lw.logInfo.StartOffset = first.baseOffset
-	lw.logInfo.StartTimestamp = first.baseTimestamp
-	lw.log.notify(lw.logInfo)
 
 	return nil
 }
 
 func (lw *LogWriter) enforceMaxAge() (err error) {
 
-	lw.segmentLock.Lock()
-	defer lw.segmentLock.Unlock()
-
 	if lw.log.config.LogMaxAge == -1 {
-		return nil
-	}
-
-	if len(lw.segmentList) <= 1 {
 		return nil
 	}
 
@@ -502,111 +346,61 @@ func (lw *LogWriter) enforceMaxAge() (err error) {
 
 	expiredTimestamp := timestamp - lw.log.config.LogMaxAge
 
-	// Last segment should never be deleted.
-	descriptors := lw.segmentList[:len(lw.segmentList)-1]
+	err = lw.deleteSegments(func(desc segmentDescriptor) bool {
+		return desc.baseTimestamp >= expiredTimestamp
+	})
 
-	pos := 0
-	for _, desc := range descriptors {
-		if desc.baseTimestamp >= expiredTimestamp {
-			break
-		}
-		pos += 1
-	}
-
-	if pos == 0 {
-		return nil
-	}
-
-	deleteList := lw.segmentList[:pos]
-	lw.segmentList = lw.segmentList[pos:]
-
-	err = lw.deleteSegments(deleteList)
 	if err != nil {
 		return err
 	}
 
-	first := lw.segmentList[0]
-	lw.logInfo.StartPosition = first.basePosition
-	lw.logInfo.StartOffset = first.baseOffset
-	lw.logInfo.StartTimestamp = first.baseTimestamp
-	lw.log.notify(lw.logInfo)
-
 	return nil
 }
 
-func (lw *LogWriter) deleteSegments(descriptors []segmentDescriptor) (err error) {
+func (lw *LogWriter) deleteSegments(breakCondition breakCondition) (err error) {
 
-	if len(descriptors) == 0 {
+	lw.log.stateLock.Lock()
+	defer lw.log.stateLock.Unlock()
+
+	if len(lw.log.segmentList) <= 1 {
 		return nil
 	}
 
-	for _, desc := range descriptors {
-		err = deleteSegment(lw.log.path, desc.segmentName)
+	// Last segment should never be deleted.
+	descriptors := lw.log.segmentList[:len(lw.log.segmentList)-1]
 
-		if err == errSegmentNotExist {
-			continue
+	for _, desc := range descriptors {
+
+		if breakCondition(desc) {
+			break
 		}
 
+		err = deleteSegment(lw.log.path, desc.segmentName)
 		if err != nil {
 			return err
 		}
+
+		lw.log.segmentList = lw.log.segmentList[1:]
+		lw.log.directoryDirty = true
 	}
-
-	if lw.syncMode == SyncUnsafe {
-		return nil
-	}
-
-	lw.dirtyLock.Lock()
-	defer lw.dirtyLock.Unlock()
-
-	lw.directoryDirty = true
 
 	return nil
 }
 
-func (lw *LogWriter) createNewSegment() (err error) {
+func (lw *LogWriter) hasSegments() (has bool) {
 
-	lw.segmentLock.Lock()
-	defer lw.segmentLock.Unlock()
+	lw.log.stateLock.Lock()
+	defer lw.log.stateLock.Unlock()
 
-	timestamp := now.Unix()
-
-	name := buildSegmentName(lw.position, lw.offset, timestamp)
-	desc := segmentDescriptor{
-		segmentName:   name,
-		basePosition:  lw.position,
-		baseOffset:    lw.offset,
-		baseTimestamp: timestamp,
-	}
-
-	segmentWriter, err := newSegmentWriter(lw.log.path, desc.segmentName, true, lw.log.config, lw.bufferSize)
-	if err != nil {
-		return err
-	}
-
-	lw.segmentWriter = segmentWriter
-	lw.segmentList = append(lw.segmentList, desc)
-
-	if lw.syncMode == SyncUnsafe {
-		return nil
-	}
-
-	lw.dirtyLock.Lock()
-	defer lw.dirtyLock.Unlock()
-
-	lw.currentName = desc.segmentName
-	lw.currentDirty = false
-	lw.directoryDirty = true
-
-	return nil
+	return len(lw.log.segmentList) > 0
 }
 
 func (lw *LogWriter) openLastSegment() (err error) {
 
-	lw.segmentLock.Lock()
-	defer lw.segmentLock.Unlock()
+	lw.log.stateLock.Lock()
+	defer lw.log.stateLock.Unlock()
 
-	last := lw.segmentList[len(lw.segmentList)-1]
+	last := lw.log.segmentList[len(lw.log.segmentList)-1]
 
 	segmentWriter, err := newSegmentWriter(lw.log.path, last.segmentName, false, lw.log.config, lw.bufferSize)
 	if err != nil {
@@ -619,24 +413,48 @@ func (lw *LogWriter) openLastSegment() (err error) {
 	lw.position = position
 	lw.offset = offset
 
-	if lw.syncMode == SyncUnsafe {
-		return nil
+	lw.log.flushedPosition = position
+	lw.log.flushedOffset = offset
+	lw.log.syncedPosition = position
+	lw.log.syncedOffset = offset
+
+	return nil
+}
+
+func (lw *LogWriter) createNewSegment() (err error) {
+
+	lw.log.stateLock.Lock()
+	defer lw.log.stateLock.Unlock()
+
+	timestamp := now.Unix()
+
+	name := buildSegmentName(lw.position, lw.offset, timestamp)
+	desc := segmentDescriptor{
+		basePosition:  lw.position,
+		baseOffset:    lw.offset,
+		baseTimestamp: timestamp,
+		segmentName:   name,
+		segmentDirty:  false,
 	}
 
-	lw.dirtyLock.Lock()
-	defer lw.dirtyLock.Unlock()
+	segmentWriter, err := newSegmentWriter(lw.log.path, desc.segmentName, true, lw.log.config, lw.bufferSize)
+	if err != nil {
+		return err
+	}
 
-	lw.currentName = last.segmentName
-	lw.currentDirty = false
-	lw.directoryDirty = false
+	lw.segmentWriter = segmentWriter
+
+	lw.log.segmentList = append(lw.log.segmentList, desc)
+	lw.log.directoryDirty = true
 
 	return nil
 }
 
 func (lw *LogWriter) closeCurrentSegment() (err error) {
 
-	lw.segmentLock.Lock()
-	defer lw.segmentLock.Unlock()
+	if lw.segmentWriter == nil {
+		return nil
+	}
 
 	err = lw.segmentWriter.Close()
 	if err != nil {
@@ -645,46 +463,48 @@ func (lw *LogWriter) closeCurrentSegment() (err error) {
 
 	lw.segmentWriter = nil
 
-	// Delete segment if empty.
-	current := lw.segmentList[len(lw.segmentList)-1]
-
-	if current.basePosition == (lw.position - lw.buffered) {
-		err = deleteSegment(lw.log.path, current.segmentName)
-		if err != nil {
-			return err
-		}
-	}
-
-	lw.buffered = 0
-
-	if lw.syncMode == SyncUnsafe {
-		return nil
-	}
-
-	lw.dirtyLock.Lock()
-	defer lw.dirtyLock.Unlock()
-
-	if lw.currentDirty {
-		lw.dirtyList = append(lw.dirtyList, lw.currentName)
-	}
-
-	lw.currentName = ""
-	lw.currentDirty = false
-
 	return nil
 }
 
-func (lw *LogWriter) updateSegmentList() (err error) {
+func (lw LogWriter) expirer() {
 
-	lw.segmentLock.Lock()
-	defer lw.segmentLock.Unlock()
+	ticker := time.NewTicker(expireInterval)
 
-	descriptors, err := listSegmentDescriptors(lw.log.path)
-	if err != nil {
-		return err
+	for {
+		select {
+		case <-lw.expirerStop:
+			ticker.Stop()
+			lw.expirerDone <- struct{}{}
+			return
+		case <-ticker.C:
+			err := lw.enforceMaxAge()
+			if err != nil {
+				if lw.errorHandler != nil {
+					lw.errorHandler(err)
+					ticker.Stop()
+					lw.expirerDone <- struct{}{}
+					return
+				}
+
+				panic(err)
+			}
+		}
+	}
+}
+
+func (lw *LogWriter) syncer() {
+
+	for _ = range lw.syncerChan {
+		err := lw.sync()
+		if err != nil {
+			if lw.errorHandler != nil {
+				lw.errorHandler(err)
+				break
+			}
+
+			panic(err)
+		}
 	}
 
-	lw.segmentList = descriptors
-
-	return nil
+	lw.syncerDone <- struct{}{}
 }

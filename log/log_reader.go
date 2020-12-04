@@ -8,55 +8,65 @@ import (
 )
 
 type LogReader struct {
-	log            *Log
-	bufferSize     int
-	follow         bool
-	ioMode         recio.IOMode
-	segmentList    []segmentDescriptor
-	currentSegment int
-	segmentReader  *segmentReader
-	position       int64
-	offset         int64
-	mustFill       bool
-	statChan       chan LogInfo
-	logInfo        LogInfo
-	closed         bool
-	closedLock     sync.RWMutex
+	log           *Log
+	bufferSize    int
+	follow        bool
+	ioMode        recio.IOMode
+	segmentReader *segmentReader
+	position      int64
+	offset        int64
+	mustFill      bool
+	mustNext      bool
+	mustWait      bool
+	startPosition int64
+	endPosition   int64
+	notifyChan    chan struct{}
+	closed        bool
+	closeLock     sync.Mutex
 }
 
 func newLogReader(l *Log, bufferSize int, follow bool, ioMode recio.IOMode) (lr *LogReader, err error) {
 
 	lr = &LogReader{
-		log:            l,
-		bufferSize:     bufferSize,
-		follow:         follow,
-		ioMode:         ioMode,
-		segmentList:    []segmentDescriptor{},
-		currentSegment: -1,
-		segmentReader:  nil,
-		position:       0,
-		offset:         0,
-		mustFill:       false,
-		statChan:       make(chan LogInfo, 1),
-		logInfo:        LogInfo{},
-		closed:         false,
-		closedLock:     sync.RWMutex{},
+		log:           l,
+		bufferSize:    bufferSize,
+		follow:        follow,
+		ioMode:        ioMode,
+		segmentReader: nil,
+		position:      0,
+		offset:        0,
+		mustFill:      false,
+		mustNext:      false,
+		mustWait:      false,
+		startPosition: 0,
+		endPosition:   0,
+		notifyChan:    make(chan struct{}, 1),
+		closed:        false,
+		closeLock:     sync.Mutex{},
 	}
 
-	lr.log.Subscribe(lr.statChan)
+	err = lr.openFirstSegment()
+	if err != nil {
+		return nil, err
+	}
 
-	lr.logInfo = <-lr.statChan
+	lr.updateBoundaries()
 
-	lr.position = lr.logInfo.StartPosition
-	lr.offset = lr.logInfo.StartOffset
+	if lr.position == lr.endPosition {
+		lr.mustWait = true
+	}
+
+	lr.log.subscribe(lr.notifyChan)
+
+	lr.log.registerReader(lr)
 
 	return lr, nil
 }
 
 func (lr *LogReader) Close() (err error) {
 
-	lr.closedLock.Lock()
-	defer lr.closedLock.Unlock()
+	lr.closeLock.Lock()
+	defer lr.closeLock.Unlock()
 
 	if lr.closed {
 		return nil
@@ -64,15 +74,15 @@ func (lr *LogReader) Close() (err error) {
 
 	lr.closed = true
 
-	lr.log.Unsubscribe(lr.statChan)
+	lr.log.unregisterReader(lr)
 
-	close(lr.statChan)
+	lr.log.unsubscribe(lr.notifyChan)
 
-	if lr.segmentReader != nil {
-		err = lr.closeCurrentSegment()
-		if err != nil {
-			return err
-		}
+	close(lr.notifyChan)
+
+	err = lr.closeCurrentSegment()
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -90,6 +100,35 @@ func (lr *LogReader) Read(r *Record) (n int, err error) {
 	}
 
 Retry:
+	if lr.mustWait {
+		if !lr.follow {
+			return 0, io.EOF
+		}
+
+		if lr.ioMode == recio.ModeManual {
+			return 0, recio.ErrMustFill
+		}
+
+		err = lr.Fill()
+		if err != nil {
+			return 0, err
+		}
+	}
+
+	if lr.mustNext {
+		err = lr.closeCurrentSegment()
+		if err != nil {
+			return 0, err
+		}
+
+		err = lr.openNextSegment()
+		if err != nil {
+			return 0, err
+		}
+
+		lr.mustNext = false
+	}
+
 	if lr.mustFill {
 		if lr.ioMode == recio.ModeManual {
 			return 0, recio.ErrMustFill
@@ -101,40 +140,21 @@ Retry:
 		}
 	}
 
-	if lr.segmentReader == nil {
-		err = lr.openNextSegment()
-		if err != nil {
-			return 0, err
-		}
-	}
-
 	n, err = lr.segmentReader.Read(r)
 
 	if err == recio.ErrMustFill {
+
 		lr.mustFill = true
 
 		goto Retry
 	}
 
 	if err == io.EOF {
-		err = lr.closeCurrentSegment()
-		if err != nil {
-			return 0, err
-		}
+
+		lr.mustNext = true
+		lr.mustFill = true
 
 		goto Retry
-	}
-
-	if err == errSegmentCorrupt {
-		return 0, ErrCorrupt
-	}
-
-	if err == ErrInvalidRecord {
-		return 0, ErrCorrupt
-	}
-
-	if err == ErrRecordTooLarge {
-		return 0, ErrCorrupt
 	}
 
 	if err != nil {
@@ -144,26 +164,34 @@ Retry:
 	lr.position += 1
 	lr.offset += int64(n)
 
+	if lr.position == lr.endPosition {
+		lr.mustWait = true
+	}
+
 	return n, nil
 }
 
 func (lr *LogReader) Fill() (err error) {
 
 Retry:
-	if lr.follow && (lr.position >= lr.logInfo.EndPosition) {
+	if lr.mustWait && lr.follow {
 
-		logInfo, more := <-lr.statChan
+		_, more := <-lr.notifyChan
 		if !more {
 			return ErrClosed
 		}
 
-		lr.logInfo = logInfo
+		lr.updateBoundaries()
+
+		if lr.endPosition > lr.position {
+			lr.mustWait = false
+		}
 
 		goto Retry
 	}
 
-	lr.closedLock.RLock()
-	defer lr.closedLock.RUnlock()
+	lr.closeLock.Lock()
+	defer lr.closeLock.Unlock()
 
 	if lr.closed {
 		return ErrClosed
@@ -179,13 +207,17 @@ Retry:
 	return nil
 }
 
-func (lr *LogReader) Seek(position int64, whence SeekWhence) (err error) {
+func (lr *LogReader) Seek(position int64, whence Whence) (err error) {
 
-	lr.closedLock.RLock()
-	defer lr.closedLock.RUnlock()
+	lr.closeLock.Lock()
+	defer lr.closeLock.Unlock()
 
 	if lr.closed {
 		return ErrClosed
+	}
+
+	if lr.follow {
+		lr.updateBoundaries()
 	}
 
 	var reference int64
@@ -193,36 +225,25 @@ func (lr *LogReader) Seek(position int64, whence SeekWhence) (err error) {
 	switch whence {
 	case SeekOrigin:
 		reference = 0
-
 	case SeekStart:
-		reference = lr.logInfo.StartPosition
-
+		reference = lr.startPosition
 	case SeekCurrent:
 		reference = lr.position
-
 	case SeekEnd:
-		reference = lr.logInfo.EndPosition
-
-	default:
-		return ErrInvalidWhence
+		reference = lr.endPosition
 	}
 
 	absolute := reference + position
 
-	if absolute < lr.logInfo.StartPosition {
+	if absolute < lr.startPosition {
 		return ErrOutOfRange
 	}
 
-	if absolute > lr.logInfo.EndPosition {
+	if absolute > lr.endPosition {
 		return ErrOutOfRange
 	}
 
 	err = lr.seekPosition(absolute)
-
-	if err == errSegmentCorrupt {
-		return ErrCorrupt
-	}
-
 	if err != nil {
 		return err
 	}
@@ -232,17 +253,11 @@ func (lr *LogReader) Seek(position int64, whence SeekWhence) (err error) {
 
 func (lr *LogReader) seekPosition(position int64) (err error) {
 
-	err = lr.updateSegmentList()
-	if err != nil {
-		return err
-	}
-
-	if len(lr.segmentList) == 0 {
-		return ErrOutOfRange
-	}
+	lr.log.stateLock.Lock()
+	defer lr.log.stateLock.Unlock()
 
 	pos := -1
-	for i, desc := range lr.segmentList {
+	for i, desc := range lr.log.segmentList {
 		if desc.basePosition > position {
 			break
 		}
@@ -253,102 +268,112 @@ func (lr *LogReader) seekPosition(position int64) (err error) {
 		return ErrOutOfRange
 	}
 
-	current := lr.segmentList[pos]
+	current := lr.log.segmentList[pos]
 
 	segmentReader, err := newSegmentReader(lr.log.path, current.segmentName, lr.log.config, lr.bufferSize)
-
-	if err == errSegmentNotExist {
-		return ErrOutOfRange
-	}
-
 	if err != nil {
 		return err
 	}
 
 	err = segmentReader.SeekPosition(position)
-
-	if err == errSegmentCorrupt {
-		return ErrCorrupt
-	}
-
 	if err != nil {
 		return err
 	}
 
 	position, offset := segmentReader.Tell()
 
-	if lr.segmentReader != nil {
-		err = lr.closeCurrentSegment()
-		if err != nil {
-			return err
-		}
+	err = lr.closeCurrentSegment()
+	if err != nil {
+		return err
 	}
 
 	lr.segmentReader = segmentReader
-	lr.currentSegment = pos
 	lr.position = position
 	lr.offset = offset
+
+	if lr.position == lr.endPosition {
+		lr.mustWait = true
+	}
+
+	return nil
+}
+
+func (lr *LogReader) updateBoundaries() {
+
+	lr.log.stateLock.Lock()
+	defer lr.log.stateLock.Unlock()
+
+	lr.startPosition = lr.log.segmentList[0].basePosition
+	lr.endPosition = lr.log.syncedPosition
+}
+
+func (lr *LogReader) openFirstSegment() (err error) {
+
+	lr.log.stateLock.Lock()
+	defer lr.log.stateLock.Unlock()
+
+	first := lr.log.segmentList[0]
+
+	segmentReader, err := newSegmentReader(lr.log.path, first.segmentName, lr.log.config, lr.bufferSize)
+	if err != nil {
+		return err
+	}
+
+	lr.segmentReader = segmentReader
+	lr.position = first.basePosition
+	lr.offset = first.baseOffset
 
 	return nil
 }
 
 func (lr *LogReader) openNextSegment() (err error) {
 
-	nextSegment := lr.currentSegment + 1
+	lr.log.stateLock.Lock()
+	defer lr.log.stateLock.Unlock()
 
-	if nextSegment > len(lr.segmentList)-1 {
+	first := lr.log.segmentList[0]
 
-		err = lr.updateSegmentList()
-		if err != nil {
-			return err
+	if lr.position < first.basePosition {
+		return ErrLagging
+	}
+
+	pos := -1
+	for i, desc := range lr.log.segmentList {
+
+		if desc.basePosition == lr.position {
+			pos = i
+			continue
 		}
 
-		if len(lr.segmentList) == 0 {
-			return io.EOF
-		}
-
-		first := lr.segmentList[0]
-		if lr.position < first.basePosition {
-			return ErrOutOfRange
-		}
-
-		pos := -1
-		for i, desc := range lr.segmentList {
-			if desc.basePosition == lr.position {
-				pos = i
+		if desc.basePosition > lr.position {
+			if pos == -1 {
+				return ErrCorrupt
 			}
+			break
 		}
-
-		if pos == -1 {
-			return io.EOF
-		}
-
-		nextSegment = pos
 	}
 
-	next := lr.segmentList[nextSegment]
-
-	if next.basePosition != lr.position {
-		return ErrCorrupt
+	if pos == -1 {
+		return io.EOF
 	}
+
+	next := lr.log.segmentList[pos]
 
 	segmentReader, err := newSegmentReader(lr.log.path, next.segmentName, lr.log.config, lr.bufferSize)
-
-	if err == errSegmentNotExist {
-		return ErrOutOfRange
-	}
-
 	if err != nil {
 		return err
 	}
 
 	lr.segmentReader = segmentReader
-	lr.currentSegment = nextSegment
 
 	return nil
 }
 
 func (lr *LogReader) closeCurrentSegment() (err error) {
+
+	if lr.segmentReader == nil {
+		return nil
+	}
 
 	err = lr.segmentReader.Close()
 	if err != nil {
@@ -356,19 +381,6 @@ func (lr *LogReader) closeCurrentSegment() (err error) {
 	}
 
 	lr.segmentReader = nil
-
-	return nil
-}
-
-func (lr *LogReader) updateSegmentList() (err error) {
-
-	descriptors, err := listSegmentDescriptors(lr.log.path)
-	if err != nil {
-		return err
-	}
-
-	lr.segmentList = descriptors
-	lr.currentSegment = -1
 
 	return nil
 }
