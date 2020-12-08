@@ -295,6 +295,10 @@ func (lw *LogWriter) updateSyncProgress(position int64, offset int64) {
 	lw.log.syncedPosition = position
 	lw.log.syncedOffset = offset
 
+	if lw.syncHandler != nil {
+		lw.syncHandler(position)
+	}
+
 	lw.log.notify()
 }
 
