@@ -66,8 +66,6 @@ const (
 	SeekEnd     Whence = "end"     // Seek from the end of the log.
 )
 
-type ErrorHandler func(err error)
-
 type breakCondition func(segmentDescriptor) bool
 
 type Stat struct {
@@ -853,12 +851,12 @@ func (l *Log) expirer() {
 
 	for {
 		select {
-		case <- ticker.C:
+		case <-ticker.C:
 			err := l.enforceMaxAge()
 			if err != nil {
 				panic(err)
 			}
-		case <- l.expirerStop:
+		case <-l.expirerStop:
 			ticker.Stop()
 			return
 		}

@@ -6,40 +6,47 @@ import (
 	"gitlab.com/dataptive/styx/recio"
 )
 
-type SyncHandler func(position int64)
+type SyncProgress struct {
+	Position int64
+	Count    int64
+}
+
+type SyncHandler func(syncProgress SyncProgress)
 
 type LogWriter struct {
-	log           *Log
-	bufferSize    int
-	ioMode        recio.IOMode
-	segmentWriter *segmentWriter
-	position      int64
-	offset        int64
-	mustFlush     bool
-	mustRoll      bool
-	syncerChan    chan struct{}
-	syncerDone    chan struct{}
-	closed        bool
-	closeLock     sync.Mutex
-	syncHandler   SyncHandler
+	log             *Log
+	bufferSize      int
+	ioMode          recio.IOMode
+	segmentWriter   *segmentWriter
+	position        int64
+	offset          int64
+	mustFlush       bool
+	mustRoll        bool
+	syncerChan      chan struct{}
+	syncerDone      chan struct{}
+	closed          bool
+	closeLock       sync.Mutex
+	syncHandler     SyncHandler
+	initialPosition int64
 }
 
 func newLogWriter(l *Log, bufferSize int, ioMode recio.IOMode) (lw *LogWriter, err error) {
 
 	lw = &LogWriter{
-		log:           l,
-		bufferSize:    bufferSize,
-		ioMode:        ioMode,
-		segmentWriter: nil,
-		position:      0,
-		offset:        0,
-		mustFlush:     false,
-		mustRoll:      false,
-		syncerChan:    make(chan struct{}, 1),
-		syncerDone:    make(chan struct{}),
-		closed:        false,
-		closeLock:     sync.Mutex{},
-		syncHandler:   nil,
+		log:             l,
+		bufferSize:      bufferSize,
+		ioMode:          ioMode,
+		segmentWriter:   nil,
+		position:        0,
+		offset:          0,
+		mustFlush:       false,
+		mustRoll:        false,
+		syncerChan:      make(chan struct{}, 1),
+		syncerDone:      make(chan struct{}),
+		closed:          false,
+		closeLock:       sync.Mutex{},
+		syncHandler:     nil,
+		initialPosition: 0,
 	}
 
 	lw.log.acquireWriteLock()
@@ -277,7 +284,11 @@ func (lw *LogWriter) updateSyncProgress(position int64, offset int64) {
 	lw.log.syncedOffset = offset
 
 	if lw.syncHandler != nil {
-		lw.syncHandler(position)
+		syncProgress := SyncProgress{
+			Position: position,
+			Count:    lw.initialPosition - position,
+		}
+		lw.syncHandler(syncProgress)
 	}
 
 	lw.log.notify()
@@ -346,6 +357,7 @@ func (lw *LogWriter) openLastSegment() (err error) {
 	lw.segmentWriter = segmentWriter
 	lw.position = position
 	lw.offset = offset
+	lw.initialPosition = position
 
 	lw.log.flushedPosition = position
 	lw.log.flushedOffset = offset
