@@ -3,6 +3,7 @@ package log
 import (
 	"io"
 	"sync"
+	"time"
 
 	"gitlab.com/dataptive/styx/recio"
 )
@@ -23,9 +24,13 @@ type LogReader struct {
 	notifyChan    chan struct{}
 	closed        bool
 	closeLock     sync.Mutex
+	deadline      <-chan time.Time
+	deadlineTimer *time.Timer
 }
 
 func newLogReader(l *Log, bufferSize int, follow bool, ioMode recio.IOMode) (lr *LogReader, err error) {
+
+	deadlineTimer := time.NewTimer(0 * time.Second)
 
 	lr = &LogReader{
 		log:           l,
@@ -43,6 +48,7 @@ func newLogReader(l *Log, bufferSize int, follow bool, ioMode recio.IOMode) (lr 
 		notifyChan:    make(chan struct{}, 1),
 		closed:        false,
 		closeLock:     sync.Mutex{},
+		deadlineTimer: deadlineTimer,
 	}
 
 	err = lr.openFirstSegment()
@@ -79,6 +85,8 @@ func (lr *LogReader) Close() (err error) {
 	lr.log.unsubscribe(lr.notifyChan)
 
 	close(lr.notifyChan)
+
+	lr.deadlineTimer.Stop()
 
 	err = lr.closeCurrentSegment()
 	if err != nil {
@@ -176,9 +184,13 @@ func (lr *LogReader) Fill() (err error) {
 Retry:
 	if lr.mustWait && lr.follow {
 
-		_, more := <-lr.notifyChan
-		if !more {
-			return ErrClosed
+		select {
+		case _, more := <-lr.notifyChan:
+			if !more {
+				return ErrClosed
+			}
+		case <-lr.deadline:
+			return ErrTimeout
 		}
 
 		lr.updateBoundaries()
@@ -247,6 +259,21 @@ func (lr *LogReader) Seek(position int64, whence Whence) (err error) {
 	if err != nil {
 		return err
 	}
+
+	return nil
+}
+
+func (lr *LogReader) SetWaitDeadline(t time.Time) (err error) {
+
+	if !lr.deadlineTimer.Stop() {
+		<-lr.deadlineTimer.C
+	}
+
+	start := now.Time()
+	timeout := t.Sub(start)
+
+	lr.deadlineTimer.Reset(timeout)
+	lr.deadline = lr.deadlineTimer.C
 
 	return nil
 }

@@ -52,6 +52,7 @@ var (
 	ErrLocked     = errors.New("log: locked")
 	ErrOrphaned   = errors.New("log: orphaned")
 	ErrClosed     = errors.New("log: closed")
+	ErrTimeout    = errors.New("log: timeout")
 
 	now = clock.New(time.Second)
 )
