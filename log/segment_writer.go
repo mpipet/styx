@@ -184,16 +184,6 @@ func (sw *segmentWriter) Flush() (err error) {
 	return nil
 }
 
-func (sw *segmentWriter) Sync() (err error) {
-
-	err = sw.recordsFile.Sync()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (sw *segmentWriter) seekEnd() (err error) {
 
 	_, err = sw.indexFile.Seek(0, os.SEEK_SET)

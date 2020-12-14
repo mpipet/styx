@@ -1,18 +1,12 @@
 //
 // TODO
 // - Intercepter l'erreur fichier fermé dans reader et writer en cas de Close asynchrone.
-// - Déplacer la synchro et l'expiration dans des objets dédiés, mieux gérer le cycle de vie des process.
-// - Utiliser des channels pour les notifications de synchro et d'erreur ?
 // - Déplacer les logiques de backup et de restore dans un fichier dédié ?
 // - Tester les perfs avec un record sous forme de struct.
-// - Supprimer Sync sur les segments: inutilisé.
 // - Possibilité de créer des writers et readers pendant la fermeture du log (ou après).
-// - Tester l'ajout de fonctions SetFillDeadline SetFlushDeadline.
 // - Appeler releaseWriterLock en cas d'échec à la création du LogWriter.
 // - La liste de readers est mutée par unregisterReader pendant le forceReadersClose.
 // - Grouper les fonctions qui utilisent stateLock dans le LogWriter ?
-// - L'expirer va deadlock à la fermeture (expirerStop jamais dépilé) si il a eu une erreur.
-// - Vérifier qu'il ne faut pas déjà sortir au niveau de la gestion du notifierStop du fanin.
 //
 package log
 
