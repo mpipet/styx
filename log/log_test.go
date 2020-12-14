@@ -607,6 +607,69 @@ func TestLog_UnblockFollow(t *testing.T) {
 	}
 }
 
+// Tests that readers blocked on follow will timeout when a deadline is set.
+func TestLog_TimeoutFollow(t *testing.T) {
+
+	config := DefaultConfig
+	options := DefaultOptions
+
+	path := t.TempDir()
+	name := filepath.Join(path, "test")
+
+	l, err := Create(name, config, options)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer l.Close()
+
+	lw, err := l.NewWriter(1<<20, recio.ModeAuto)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer lw.Close()
+
+	lr, err := l.NewReader(1<<10, true, recio.ModeAuto)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	go func() {
+		time.Sleep(50 * time.Millisecond)
+
+		r := Record([]byte("test"))
+
+		_, err := lw.Write(&r)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		err = lw.Flush()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}()
+
+	go func() {
+		// Unblock reader in case test fails.
+		time.Sleep(100 * time.Millisecond)
+		err = lr.Close()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}()
+
+	var r Record
+
+	deadline := time.Now().Add(50 * time.Millisecond)
+	lr.SetWaitDeadline(deadline)
+
+	_, err = lr.Read(&r)
+	if err != ErrTimeout {
+		t.Fatalf("read should have timeout but failed with err = %s", err)
+	}
+}
+
+
 // Tests that a missing segment is correctly detected as a corruption.
 func TestLog_MissingSegment(t *testing.T) {
 
