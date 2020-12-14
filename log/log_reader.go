@@ -24,7 +24,7 @@ type LogReader struct {
 	notifyChan    chan struct{}
 	closed        bool
 	closeLock     sync.Mutex
-	deadline      <- chan time.Time
+	deadline      <-chan time.Time
 	deadlineTimer *time.Timer
 }
 
@@ -189,7 +189,7 @@ Retry:
 			if !more {
 				return ErrClosed
 			}
-		case <- lr.deadline:
+		case <-lr.deadline:
 			return ErrTimeout
 		}
 
@@ -266,7 +266,7 @@ func (lr *LogReader) Seek(position int64, whence Whence) (err error) {
 func (lr *LogReader) SetWaitDeadline(t time.Time) (err error) {
 
 	if !lr.deadlineTimer.Stop() {
-		<- lr.deadlineTimer.C
+		<-lr.deadlineTimer.C
 	}
 
 	start := now.Time()

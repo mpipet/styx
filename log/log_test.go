@@ -669,7 +669,6 @@ func TestLog_TimeoutFollow(t *testing.T) {
 	}
 }
 
-
 // Tests that a missing segment is correctly detected as a corruption.
 func TestLog_MissingSegment(t *testing.T) {
 
