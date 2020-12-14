@@ -1,3 +1,19 @@
+//
+// TODO
+// - Intercepter l'erreur fichier fermé dans reader et writer en cas de Close asynchrone.
+// - Déplacer la synchro et l'expiration dans des objets dédiés, mieux gérer le cycle de vie des process.
+// - Utiliser des channels pour les notifications de synchro et d'erreur ?
+// - Déplacer les logiques de backup et de restore dans un fichier dédié ?
+// - Tester les perfs avec un record sous forme de struct.
+// - Supprimer Sync sur les segments: inutilisé.
+// - Possibilité de créer des writers et readers pendant la fermeture du log (ou après).
+// - Tester l'ajout de fonctions SetFillDeadline SetFlushDeadline.
+// - Appeler releaseWriterLock en cas d'échec à la création du LogWriter.
+// - La liste de readers est mutée par unregisterReader pendant le forceReadersClose.
+// - Grouper les fonctions qui utilisent stateLock dans le LogWriter ?
+// - L'expirer va deadlock à la fermeture (expirerStop jamais dépilé) si il a eu une erreur.
+// - Vérifier qu'il ne faut pas déjà sortir au niveau de la gestion du notifierStop du fanin.
+//
 package log
 
 import (
@@ -49,6 +65,10 @@ const (
 	SeekEnd     Whence = "end"     // Seek from the end of the log.
 )
 
+type ErrorHandler func(err error)
+
+type breakCondition func(segmentDescriptor) bool
+
 type Stat struct {
 	StartPosition  int64
 	StartOffset    int64
@@ -68,6 +88,7 @@ type Log struct {
 	syncedPosition  int64
 	syncedOffset    int64
 	stateLock       sync.RWMutex
+	expirerStop     chan struct{}
 	subscribers     []chan struct{}
 	subscribersLock sync.Mutex
 	writeLock       sync.Mutex
@@ -235,6 +256,7 @@ func newLog(path string, config Config, options Options) (l *Log, err error) {
 		syncedPosition:  0,
 		syncedOffset:    0,
 		stateLock:       sync.RWMutex{},
+		expirerStop:     make(chan struct{}),
 		subscribers:     []chan struct{}{},
 		subscribersLock: sync.Mutex{},
 		writeLock:       sync.Mutex{},
@@ -260,6 +282,8 @@ func newLog(path string, config Config, options Options) (l *Log, err error) {
 		return nil, err
 	}
 
+	go l.expirer()
+
 	return l, nil
 }
 
@@ -274,6 +298,8 @@ func (l *Log) Close() (err error) {
 	if err != nil {
 		return err
 	}
+
+	l.expirerStop <- struct{}{}
 
 	err = l.releaseFileLock()
 	if err != nil {
@@ -326,7 +352,7 @@ func (l *Log) Backup(w io.Writer) (err error) {
 	// Checkpoint current log state.
 	stat := l.Stat()
 
-	// Build a list a index and records file handles.
+	// Build a list of index and records file handles.
 	names, err := listSegments(l.path)
 	if err != nil {
 		return err
@@ -767,4 +793,73 @@ func (l *Log) forceReadersClose() (err error) {
 	}
 
 	return nil
+}
+
+func (l *Log) deleteSegments(breakCondition breakCondition) (err error) {
+
+	l.stateLock.Lock()
+	defer l.stateLock.Unlock()
+
+	if len(l.segmentList) <= 1 {
+		return nil
+	}
+
+	// Last segment should never be deleted.
+	descriptors := l.segmentList[:len(l.segmentList)-1]
+
+	for _, desc := range descriptors {
+
+		if breakCondition(desc) {
+			break
+		}
+
+		err = deleteSegment(l.path, desc.segmentName)
+		if err != nil {
+			return err
+		}
+
+		l.segmentList = l.segmentList[1:]
+		l.directoryDirty = true
+	}
+
+	return nil
+}
+
+func (l *Log) enforceMaxAge() (err error) {
+
+	if l.config.LogMaxAge == -1 {
+		return nil
+	}
+
+	timestamp := now.Unix()
+
+	expiredTimestamp := timestamp - l.config.LogMaxAge
+
+	err = l.deleteSegments(func(desc segmentDescriptor) bool {
+		return desc.baseTimestamp >= expiredTimestamp
+	})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (l *Log) expirer() {
+
+	ticker := time.NewTicker(expireInterval)
+
+	for {
+		select {
+		case <- ticker.C:
+			err := l.enforceMaxAge()
+			if err != nil {
+				panic(err)
+			}
+		case <- l.expirerStop:
+			ticker.Stop()
+			return
+		}
+	}
 }

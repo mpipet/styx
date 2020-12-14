@@ -2,15 +2,11 @@ package log
 
 import (
 	"sync"
-	"time"
 
 	"gitlab.com/dataptive/styx/recio"
 )
 
-type ErrorHandler func(err error)
 type SyncHandler func(position int64)
-
-type breakCondition func(segmentDescriptor) bool
 
 type LogWriter struct {
 	log           *Log
@@ -21,13 +17,10 @@ type LogWriter struct {
 	offset        int64
 	mustFlush     bool
 	mustRoll      bool
-	expirerStop   chan struct{}
-	expirerDone   chan struct{}
 	syncerChan    chan struct{}
 	syncerDone    chan struct{}
 	closed        bool
 	closeLock     sync.Mutex
-	errorHandler  ErrorHandler
 	syncHandler   SyncHandler
 }
 
@@ -42,13 +35,10 @@ func newLogWriter(l *Log, bufferSize int, ioMode recio.IOMode) (lw *LogWriter, e
 		offset:        0,
 		mustFlush:     false,
 		mustRoll:      false,
-		expirerStop:   make(chan struct{}),
-		expirerDone:   make(chan struct{}),
 		syncerChan:    make(chan struct{}, 1),
 		syncerDone:    make(chan struct{}),
 		closed:        false,
 		closeLock:     sync.Mutex{},
-		errorHandler:  nil,
 		syncHandler:   nil,
 	}
 
@@ -66,7 +56,6 @@ func newLogWriter(l *Log, bufferSize int, ioMode recio.IOMode) (lw *LogWriter, e
 		}
 	}
 
-	go lw.expirer()
 	go lw.syncer()
 
 	lw.log.registerWriter(lw)
@@ -87,9 +76,6 @@ func (lw *LogWriter) Close() (err error) {
 
 	lw.log.unregisterWriter(lw)
 
-	lw.expirerStop <- struct{}{}
-	<-lw.expirerDone
-
 	close(lw.syncerChan)
 	<-lw.syncerDone
 
@@ -101,11 +87,6 @@ func (lw *LogWriter) Close() (err error) {
 	lw.log.releaseWriteLock()
 
 	return nil
-}
-
-func (lw *LogWriter) HandleError(h ErrorHandler) {
-
-	lw.errorHandler = h
 }
 
 func (lw *LogWriter) HandleSync(h SyncHandler) {
@@ -310,7 +291,7 @@ func (lw *LogWriter) enforceMaxCount() (err error) {
 
 	expiredPosition := lw.position - lw.log.config.LogMaxCount
 
-	err = lw.deleteSegments(func(desc segmentDescriptor) bool {
+	err = lw.log.deleteSegments(func(desc segmentDescriptor) bool {
 		return desc.basePosition >= expiredPosition
 	})
 
@@ -329,63 +310,12 @@ func (lw *LogWriter) enforceMaxSize() (err error) {
 
 	expiredOffset := lw.offset - lw.log.config.LogMaxSize
 
-	err = lw.deleteSegments(func(desc segmentDescriptor) bool {
+	err = lw.log.deleteSegments(func(desc segmentDescriptor) bool {
 		return desc.baseOffset >= expiredOffset
 	})
 
 	if err != nil {
 		return err
-	}
-
-	return nil
-}
-
-func (lw *LogWriter) enforceMaxAge() (err error) {
-
-	if lw.log.config.LogMaxAge == -1 {
-		return nil
-	}
-
-	timestamp := now.Unix()
-
-	expiredTimestamp := timestamp - lw.log.config.LogMaxAge
-
-	err = lw.deleteSegments(func(desc segmentDescriptor) bool {
-		return desc.baseTimestamp >= expiredTimestamp
-	})
-
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (lw *LogWriter) deleteSegments(breakCondition breakCondition) (err error) {
-
-	lw.log.stateLock.Lock()
-	defer lw.log.stateLock.Unlock()
-
-	if len(lw.log.segmentList) <= 1 {
-		return nil
-	}
-
-	// Last segment should never be deleted.
-	descriptors := lw.log.segmentList[:len(lw.log.segmentList)-1]
-
-	for _, desc := range descriptors {
-
-		if breakCondition(desc) {
-			break
-		}
-
-		err = deleteSegment(lw.log.path, desc.segmentName)
-		if err != nil {
-			return err
-		}
-
-		lw.log.segmentList = lw.log.segmentList[1:]
-		lw.log.directoryDirty = true
 	}
 
 	return nil
@@ -470,42 +400,11 @@ func (lw *LogWriter) closeCurrentSegment() (err error) {
 	return nil
 }
 
-func (lw LogWriter) expirer() {
-
-	ticker := time.NewTicker(expireInterval)
-
-	for {
-		select {
-		case <-lw.expirerStop:
-			ticker.Stop()
-			lw.expirerDone <- struct{}{}
-			return
-		case <-ticker.C:
-			err := lw.enforceMaxAge()
-			if err != nil {
-				if lw.errorHandler != nil {
-					lw.errorHandler(err)
-					ticker.Stop()
-					lw.expirerDone <- struct{}{}
-					return
-				}
-
-				panic(err)
-			}
-		}
-	}
-}
-
 func (lw *LogWriter) syncer() {
 
 	for _ = range lw.syncerChan {
 		err := lw.sync()
 		if err != nil {
-			if lw.errorHandler != nil {
-				lw.errorHandler(err)
-				break
-			}
-
 			panic(err)
 		}
 	}
