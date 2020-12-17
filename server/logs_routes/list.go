@@ -8,7 +8,7 @@ import (
 
 func (lr *LogsRouter) ListHandler(w http.ResponseWriter, r *http.Request) {
 
-	entries := make(api.ListLogsResponse, 0)
+	entries := api.ListLogsResponse{}
 
 	managedLogs := lr.manager.ListLogs()
 
