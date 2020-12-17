@@ -40,6 +40,20 @@ func WriteError(w http.ResponseWriter, statusCode int, v interface{}) {
 	WriteResponse(w, statusCode, v)
 }
 
+func ReadError(r io.Reader) (err error) {
+
+	dec := json.NewDecoder(r)
+
+	err = &Error{}
+	er := dec.Decode(err)
+
+	if er != nil {
+		return ErrUnknownError
+	}
+
+	return
+}
+
 func MarshalJson(v interface{}) (bytes []byte, err error) {
 
 	bytes, err = json.MarshalIndent(v, "", "  ")

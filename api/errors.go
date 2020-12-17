@@ -12,7 +12,7 @@ var (
 	logExistErrorCode         = "log_exist"
 	logNotFoundErrorCode      = "log_not_found"
 	logNotAvailableErrorCode  = "log_not_available"
-	missingContentLengthCode  = "missing_content_length"
+	missingLengthErrorCode    = "missing_content_length"
 
 	defaultErrorMessage          = "api: unknown error"
 	methodNotAllowedErrorMessage = "api: method not allowed"
@@ -20,7 +20,7 @@ var (
 	logExistErrorMessage         = "api: log already exists"
 	logNotFoundErrorMessage      = "api: log not found"
 	logNotAvailableErrorMessage  = "api: log not available"
-	missingContentLengthMessage  = "api: missing content-length"
+	missingLengthErrorMessage    = "api: missing content-length"
 
 	ErrUnknownError         = NewError(defaultErrorCode, defaultErrorMessage)
 	ErrMethodNotAllowed     = NewError(methodNotAllowedErrorCode, methodNotAllowedErrorMessage)
@@ -28,7 +28,7 @@ var (
 	ErrLogExist             = NewError(logExistErrorCode, logExistErrorMessage)
 	ErrLogNotFound          = NewError(logNotFoundErrorCode, logNotFoundErrorMessage)
 	ErrLogNotAvailable      = NewError(logNotFoundErrorCode, logNotFoundErrorMessage)
-	ErrMissingContentLength = NewError(missingContentLengthCode, missingContentLengthMessage)
+	ErrMissingContentLength = NewError(missingLengthErrorCode, missingLengthErrorMessage)
 )
 
 type Error struct {
