@@ -286,7 +286,7 @@ func (lw *LogWriter) updateSyncProgress(position int64, offset int64) {
 	if lw.syncHandler != nil {
 		syncProgress := SyncProgress{
 			Position: position,
-			Count:    lw.initialPosition - position,
+			Count:    position - lw.initialPosition,
 		}
 		lw.syncHandler(syncProgress)
 	}
