@@ -34,6 +34,7 @@ const (
 
 	expireInterval   = time.Second
 	maxDirtySegments = 5
+	scanBufferSize   = 1 << 20 // 1MB
 )
 
 var (
@@ -166,6 +167,104 @@ func Delete(path string) (err error) {
 	err = syncDirectory(parentPath)
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func Scan(path string) (err error) {
+
+	configPathname := filepath.Join(path, configFilename)
+
+	// Try to load config.
+	config := &Config{}
+	err = config.load(configPathname)
+	if err != nil {
+		return err
+	}
+
+	segmentDescriptors, err := listSegmentDescriptors(path)
+	if err != nil {
+		return err
+	}
+
+	// Check we have at least one segment.
+	if len(segmentDescriptors) == 0 {
+		return ErrCorrupt
+	}
+
+	position := segmentDescriptors[0].basePosition
+	offset := segmentDescriptors[0].basePosition
+
+	for _, descriptor := range segmentDescriptors {
+
+		// Check segments are contiguous.
+		if descriptor.basePosition != position {
+			return ErrCorrupt
+		}
+
+		if descriptor.baseOffset != offset {
+			return ErrCorrupt
+		}
+
+		// Scan segment index for errors.
+		pathname := filepath.Join(path, descriptor.segmentName)
+		indexFilename := pathname + indexSuffix
+
+		indexFile, err := os.OpenFile(indexFilename, os.O_RDONLY, os.FileMode(0))
+		if err != nil {
+			if os.IsNotExist(err) {
+				return ErrCorrupt
+			}
+
+			return err
+		}
+
+		indexBufferedReader := recio.NewBufferedReader(indexFile, scanBufferSize, recio.ModeAuto)
+		indexAtomicReader := recio.NewAtomicReader(indexBufferedReader)
+
+		entry := &indexEntry{}
+		for {
+			_, err := indexAtomicReader.Read(entry)
+			if err == io.EOF {
+				break
+			}
+
+			if err != nil {
+				return err
+			}
+		}
+
+		// Scan segment for errors.
+		segmentReader, err := newSegmentReader(path, descriptor.segmentName, *config, scanBufferSize)
+		if err != nil {
+			return err
+		}
+
+		record := &Record{}
+		for {
+			n, err := segmentReader.Read(record)
+			if err == io.EOF {
+				break
+			}
+
+			if err == recio.ErrMustFill {
+				err = segmentReader.Fill()
+				if err != nil {
+					return err
+				}
+
+				continue
+			}
+
+
+			if err != nil {
+				return err
+			}
+
+			offset += int64(n)
+			position ++
+		}
 	}
 
 	return nil
