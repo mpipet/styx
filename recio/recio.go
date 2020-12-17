@@ -70,6 +70,14 @@ type Decoder interface {
 	Decode(p []byte) (n int, err error)
 }
 
+// EncodeDecoder is the interface that wraps Encode and Decode methods.
+//
+// See Encoder and Decoder interfaces for details.
+type EncodeDecoder interface {
+	Encode(p []byte) (n int, err error)
+	Decode(p []byte) (n int, err error)
+}
+
 // Reader is the interface that wraps the Read method.
 //
 // Read reads a record into v from the underlying data stream.
