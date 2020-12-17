@@ -1,6 +1,8 @@
 package logs_routes
 
 import (
+	"net/http"
+
 	"gitlab.com/dataptive/styx/manager"
 	"gitlab.com/dataptive/styx/server/config"
 
@@ -26,6 +28,18 @@ func RegisterRoutes(router *mux.Router, logManager *manager.LogManager, config c
 		Config:        config,
 		schemaDecoder: decoder,
 	}
+
+	router.HandleFunc("", lr.ListHandler).
+		Methods(http.MethodGet)
+
+	router.HandleFunc("", lr.CreateHandler).
+		Methods(http.MethodPost)
+
+	router.HandleFunc("/{name}", lr.GetHandler).
+		Methods(http.MethodGet)
+
+	router.HandleFunc("/{name}", lr.DeleteHandler).
+		Methods(http.MethodDelete)
 
 	return lr
 }
