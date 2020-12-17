@@ -11,6 +11,7 @@ type TOMLConfig struct {
 	BindAddress        string            `toml:"bind_address"`
 	ShutdownTimeout    int               `toml:"shutdown_timeout"`
 	CORSAllowedOrigins []string          `toml:"cors_allowed_origins"`
+	HTTPReadBufferSize int               `toml:"http_read_buffer_size"`
 	LogManager         TOMLManagerConfig `toml:"logs"`
 }
 
@@ -24,6 +25,7 @@ type Config struct {
 	BindAddress        string
 	ShutdownTimeout    int
 	CORSAllowedOrigins []string
+	HTTPReadBufferSize int
 	LogManager         manager.Config
 }
 
@@ -39,6 +41,7 @@ func Load(path string) (c Config, err error) {
 	c.PIDFile = tc.PIDFile
 	c.BindAddress = tc.BindAddress
 	c.ShutdownTimeout = tc.ShutdownTimeout
+	c.HTTPReadBufferSize = tc.HTTPReadBufferSize
 	c.LogManager = manager.Config(tc.LogManager)
 
 	return c, nil

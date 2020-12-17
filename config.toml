@@ -4,6 +4,7 @@ pid_file = "styx.pid"
 bind_address = "0.0.0.0:8000"
 shutdown_timeout = 3
 cors_allowed_origins = ["*"]
+http_read_buffer_size = 1048576
 
 [logs]
 

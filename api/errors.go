@@ -11,18 +11,24 @@ var (
 	paramsErrorCode           = "invalid_params"
 	logExistErrorCode         = "log_exist"
 	logNotFoundErrorCode      = "log_not_found"
+	logNotAvailableErrorCode  = "log_not_available"
+	missingContentLengthCode  = "missing_content_length"
 
 	defaultErrorMessage          = "api: unknown error"
 	methodNotAllowedErrorMessage = "api: method not allowed"
 	notFoundErrorMessage         = "api: not found"
 	logExistErrorMessage         = "api: log already exists"
 	logNotFoundErrorMessage      = "api: log not found"
+	logNotAvailableErrorMessage  = "api: log not available"
+	missingContentLengthMessage  = "api: missing content-length"
 
-	ErrUnknownError     = NewError(defaultErrorCode, defaultErrorMessage)
-	ErrMethodNotAllowed = NewError(methodNotAllowedErrorCode, methodNotAllowedErrorMessage)
-	ErrNotFound         = NewError(notFoundErrorCode, notFoundErrorMessage)
-	ErrLogExist         = NewError(logExistErrorCode, logExistErrorMessage)
-	ErrLogNotFound      = NewError(logNotFoundErrorCode, logNotFoundErrorMessage)
+	ErrUnknownError         = NewError(defaultErrorCode, defaultErrorMessage)
+	ErrMethodNotAllowed     = NewError(methodNotAllowedErrorCode, methodNotAllowedErrorMessage)
+	ErrNotFound             = NewError(notFoundErrorCode, notFoundErrorMessage)
+	ErrLogExist             = NewError(logExistErrorCode, logExistErrorMessage)
+	ErrLogNotFound          = NewError(logNotFoundErrorCode, logNotFoundErrorMessage)
+	ErrLogNotAvailable      = NewError(logNotFoundErrorCode, logNotFoundErrorMessage)
+	ErrMissingContentLength = NewError(missingContentLengthCode, missingContentLengthMessage)
 )
 
 type Error struct {

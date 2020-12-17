@@ -1,7 +1,14 @@
 package api
 
 import (
+	"errors"
+
+	"gitlab.com/dataptive/styx/log"
 	"gitlab.com/dataptive/styx/manager"
+)
+
+var (
+	ErrInvalidWhence = errors.New("invalid whence")
 )
 
 type LogInfo struct {
@@ -33,3 +40,48 @@ type CreateLogForm struct {
 type CreateLogResponse LogInfo
 
 type GetLogResponse LogInfo
+
+type WriteRecordResponse struct {
+	Position int64 `json:"position"`
+	Count    int64 `json:"count"`
+}
+
+type ReadRecordParams struct {
+	Whence   log.Whence `schema:"whence"`
+	Position int64      `schema:"position"`
+}
+
+func (p ReadRecordParams) Validate() (err error) {
+	err = validateWhence(p.Whence)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func validateWhence(whence log.Whence) (err error) {
+
+	validWhences := []log.Whence{
+		log.SeekOrigin,
+		log.SeekStart,
+		log.SeekCurrent,
+		log.SeekEnd,
+	}
+
+	found := false
+	for _, w := range validWhences {
+
+		if w == whence {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		return ErrInvalidWhence
+	}
+
+	return nil
+}
