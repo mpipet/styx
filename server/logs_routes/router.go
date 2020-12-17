@@ -41,6 +41,12 @@ func RegisterRoutes(router *mux.Router, logManager *manager.LogManager, config c
 	router.HandleFunc("/{name}", lr.DeleteHandler).
 		Methods(http.MethodDelete)
 
+	router.HandleFunc("/{name}/backup", lr.BackupHandler).
+		Methods(http.MethodGet)
+
+	router.HandleFunc("/restore", lr.RestoreHandler).
+		Methods(http.MethodPost)
+
 	router.HandleFunc("/{name}/records", lr.WriteHandler).
 		Methods(http.MethodPost)
 

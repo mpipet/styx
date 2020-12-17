@@ -41,6 +41,10 @@ type CreateLogResponse LogInfo
 
 type GetLogResponse LogInfo
 
+type RestoreLogParams struct {
+	Name string `schema:"name,required"`
+}
+
 type WriteRecordResponse struct {
 	Position int64 `json:"position"`
 	Count    int64 `json:"count"`
