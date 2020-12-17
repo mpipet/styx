@@ -6,6 +6,7 @@ import (
 	"gitlab.com/dataptive/styx/api"
 	"gitlab.com/dataptive/styx/manager"
 	"gitlab.com/dataptive/styx/server/config"
+	"gitlab.com/dataptive/styx/server/logs_routes"
 
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
@@ -27,6 +28,8 @@ func NewRouter(logManager *manager.LogManager, config config.Config) (r *Router)
 		router: router,
 		config: config,
 	}
+
+	logs_routes.RegisterRoutes(router.PathPrefix("/logs").Subrouter(), logManager, config)
 
 	c := cors.New(cors.Options{
 		AllowedOrigins:   r.config.CORSAllowedOrigins,
