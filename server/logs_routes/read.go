@@ -75,7 +75,7 @@ func (lr *LogsRouter) ReadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	record := log.Record([]byte{})
+	record := log.Record{}
 
 	_, err = logReader.Read(&record)
 	if err == io.EOF {
@@ -100,18 +100,9 @@ func (lr *LogsRouter) ReadHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Length", strconv.Itoa(len(record)))
 	w.WriteHeader(http.StatusOK)
 
-	toWrite := len(record)
-	for {
-		if toWrite == 0 {
-			break
-		}
-
-		n, err := w.Write(record[:toWrite])
-		if err != nil {
-			logger.Debug(err)
-			return
-		}
-
-		toWrite -= n
+	_, err = w.Write(record)
+	if err != nil {
+		logger.Debug(err)
+		return
 	}
 }
