@@ -65,6 +65,8 @@ func (p ReadRecordParams) Validate() (err error) {
 	return nil
 }
 
+type WriteRecordsBatchResponse WriteRecordResponse
+
 func validateWhence(whence log.Whence) (err error) {
 
 	validWhences := []log.Whence{

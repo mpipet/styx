@@ -9,6 +9,7 @@ import (
 
 	"gitlab.com/dataptive/styx/api"
 	"gitlab.com/dataptive/styx/log"
+	"gitlab.com/dataptive/styx/recio"
 
 	"github.com/gorilla/schema"
 )
@@ -231,4 +232,50 @@ func (c *Client) ReadRecord(logName string, params api.ReadRecordParams) (r log.
 	r = log.Record(test)
 
 	return r, nil
+}
+
+func (c *Client) WriteRecordsBatch(logName string, bufferSize int, fn func(w recio.Writer) (err error)) (r api.WriteRecordsBatchResponse, err error) {
+
+	pipeReader, pipeWriter := io.Pipe()
+
+		bufferedWriter := recio.NewBufferedWriter(pipeWriter, bufferSize, recio.ModeAuto)
+
+	endpoint := c.baseURL + "/logs/" + logName + "/records/batch"
+
+	req, err := http.NewRequest(http.MethodPost, endpoint, pipeReader)
+	if err != nil {
+		return r, err
+	}
+
+	go func() {
+		err := fn(bufferedWriter)
+		if err != nil {
+			pipeWriter.CloseWithError(err)
+			return
+		}
+
+		err = bufferedWriter.Flush()
+		if err != nil {
+			pipeWriter.CloseWithError(err)
+			return
+		}
+
+		pipeWriter.Close()
+	}()
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return r, err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		err = api.ReadError(resp.Body)
+		return r, err
+	}
+
+	api.ReadResponse(resp.Body, &r)
+
+	return r, err
 }
