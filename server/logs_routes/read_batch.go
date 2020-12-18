@@ -20,7 +20,7 @@ var (
 	now = clock.New(time.Second)
 )
 
-func (lr *LogsRouter) ReadRecordsBatchHandler(w http.ResponseWriter, r *http.Request) {
+func (lr *LogsRouter) ReadBatchHandler(w http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
 	name := vars["name"]
@@ -127,7 +127,7 @@ func (lr *LogsRouter) ReadRecordsBatchHandler(w http.ResponseWriter, r *http.Req
 func readBatch(bw *recio.BufferedWriter, lr *log.LogReader, limit int64, longPoll bool, timeout time.Duration) (err error) {
 
 	count := int64(0)
-	record := log.Record([]byte{})
+	record := log.Record{}
 
 	for {
 		if count == limit {

@@ -4,14 +4,21 @@ import (
 	"bytes"
 	"io"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/url"
 
 	"gitlab.com/dataptive/styx/api"
+	"gitlab.com/dataptive/styx/api/tcp"
 	"gitlab.com/dataptive/styx/log"
 	"gitlab.com/dataptive/styx/recio"
 
 	"github.com/gorilla/schema"
+)
+
+const (
+	writeBufferSize = 1 << 20 // 1MB
+	readBufferSize = 1 << 20 // 1MB
 )
 
 type RecordsWriterHandler func(w recio.Writer) (err error)
@@ -320,4 +327,55 @@ func (c *Client) ReadRecordsBatch(logName string, params api.ReadRecordsBatchPar
 	}
 
 	return nil
+}
+
+func (c *Client) WriteRecordsTCP(logName string, flag recio.IOMode, writeBufferSize int, timeout int) (tw *tcp.TCPWriter, err error) {
+
+	endpoint := c.baseURL + "/logs/" + logName + "/records"
+
+	req, err := http.NewRequest(http.MethodPost, endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Connection", "upgrade")
+	req.Header.Add("Upgrade", "tcp")
+
+	var tcpConn *net.TCPConn
+
+	dial := func(network string, address string) (conn net.Conn, err error) {
+
+		conn, err = net.Dial(network, address)
+		if err != nil {
+			return nil, err
+		}
+
+		tcpConn = conn.(*net.TCPConn)
+
+		return conn, nil
+	}
+
+	t := &http.Transport{
+		Dial: dial,
+	}
+
+	client := &http.Client{
+		Transport: t,
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode != http.StatusSwitchingProtocols {
+		err = api.ReadError(resp.Body)
+		return nil, err
+	}
+
+	remoteTimeout := 30
+
+	tw = tcp.NewTCPWriter(tcpConn, writeBufferSize, readBufferSize, timeout, remoteTimeout, flag)
+
+	return tw, nil
 }

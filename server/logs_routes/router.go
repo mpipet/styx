@@ -47,11 +47,15 @@ func RegisterRoutes(router *mux.Router, logManager *manager.LogManager, config c
 	router.HandleFunc("/restore", lr.RestoreHandler).
 		Methods(http.MethodPost)
 
-	router.HandleFunc("/{name}/records/batch", lr.WriteRecordsBatchHandler).
+	router.HandleFunc("/{name}/records/batch", lr.WriteBatchHandler).
 		Methods(http.MethodPost)
 
-	router.HandleFunc("/{name}/records/batch", lr.ReadRecordsBatchHandler).
+	router.HandleFunc("/{name}/records/batch", lr.ReadBatchHandler).
 		Methods(http.MethodGet)
+
+	router.HandleFunc("/{name}/records", lr.WriteTCPHandler).
+		Methods(http.MethodPost).
+		Headers("Upgrade", "tcp")
 
 	router.HandleFunc("/{name}/records", lr.WriteHandler).
 		Methods(http.MethodPost)

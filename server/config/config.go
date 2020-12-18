@@ -15,6 +15,9 @@ type TOMLConfig struct {
 	HTTPReadBufferSize     int               `toml:"http_read_buffer_size"`
 	HTTPLongpollTimeout    int               `toml:"http_longpoll_timeout"`
 	HTTPMaxLongpollTimeout int               `toml:"http_max_longpoll_timeout"`
+	TCPReadBufferSize      int               `toml:"tcp_read_buffer_size"`
+	TCPWriteBufferSize     int               `toml:"tcp_write_buffer_size"`
+	TCPTimeout             int               `toml:"tcp_timeout"`
 	LogManager             TOMLManagerConfig `toml:"logs"`
 }
 
@@ -32,6 +35,9 @@ type Config struct {
 	HTTPWriteBufferSize    int
 	HTTPLongpollTimeout    int
 	HTTPMaxLongpollTimeout int
+	TCPReadBufferSize      int
+	TCPWriteBufferSize     int
+	TCPTimeout             int
 	LogManager             manager.Config
 }
 
@@ -51,6 +57,9 @@ func Load(path string) (c Config, err error) {
 	c.HTTPWriteBufferSize = tc.HTTPWriteBufferSize
 	c.HTTPLongpollTimeout = tc.HTTPLongpollTimeout
 	c.HTTPMaxLongpollTimeout = tc.HTTPMaxLongpollTimeout
+	c.TCPReadBufferSize = tc.TCPReadBufferSize
+	c.TCPWriteBufferSize = tc.TCPWriteBufferSize
+	c.TCPTimeout = tc.TCPTimeout
 	c.LogManager = manager.Config(tc.LogManager)
 
 	return c, nil

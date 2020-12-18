@@ -13,7 +13,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func (lr *LogsRouter) WriteRecordsBatchHandler(w http.ResponseWriter, r *http.Request) {
+func (lr *LogsRouter) WriteBatchHandler(w http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
 	name := vars["name"]
