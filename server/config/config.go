@@ -7,12 +7,15 @@ import (
 )
 
 type TOMLConfig struct {
-	PIDFile            string            `toml:"pid_file"`
-	BindAddress        string            `toml:"bind_address"`
-	ShutdownTimeout    int               `toml:"shutdown_timeout"`
-	CORSAllowedOrigins []string          `toml:"cors_allowed_origins"`
-	HTTPReadBufferSize int               `toml:"http_read_buffer_size"`
-	LogManager         TOMLManagerConfig `toml:"logs"`
+	PIDFile                string            `toml:"pid_file"`
+	BindAddress            string            `toml:"bind_address"`
+	ShutdownTimeout        int               `toml:"shutdown_timeout"`
+	CORSAllowedOrigins     []string          `toml:"cors_allowed_origins"`
+	HTTPWriteBufferSize    int               `toml:"http_write_buffer_size"`
+	HTTPReadBufferSize     int               `toml:"http_read_buffer_size"`
+	HTTPLongpollTimeout    int               `toml:"http_longpoll_timeout"`
+	HTTPMaxLongpollTimeout int               `toml:"http_max_longpoll_timeout"`
+	LogManager             TOMLManagerConfig `toml:"logs"`
 }
 
 type TOMLManagerConfig struct {
@@ -21,12 +24,15 @@ type TOMLManagerConfig struct {
 }
 
 type Config struct {
-	PIDFile            string
-	BindAddress        string
-	ShutdownTimeout    int
-	CORSAllowedOrigins []string
-	HTTPReadBufferSize int
-	LogManager         manager.Config
+	PIDFile                string
+	BindAddress            string
+	ShutdownTimeout        int
+	CORSAllowedOrigins     []string
+	HTTPReadBufferSize     int
+	HTTPWriteBufferSize    int
+	HTTPLongpollTimeout    int
+	HTTPMaxLongpollTimeout int
+	LogManager             manager.Config
 }
 
 func Load(path string) (c Config, err error) {
@@ -42,6 +48,9 @@ func Load(path string) (c Config, err error) {
 	c.BindAddress = tc.BindAddress
 	c.ShutdownTimeout = tc.ShutdownTimeout
 	c.HTTPReadBufferSize = tc.HTTPReadBufferSize
+	c.HTTPWriteBufferSize = tc.HTTPWriteBufferSize
+	c.HTTPLongpollTimeout = tc.HTTPLongpollTimeout
+	c.HTTPMaxLongpollTimeout = tc.HTTPMaxLongpollTimeout
 	c.LogManager = manager.Config(tc.LogManager)
 
 	return c, nil

@@ -14,6 +14,9 @@ import (
 	"github.com/gorilla/schema"
 )
 
+type RecordsWriterHandler func(w recio.Writer) (err error)
+type RecordsReaderHandler func(w recio.Reader) (err error)
+
 type Client struct {
 	baseURL    string
 	httpClient *http.Client
@@ -234,7 +237,7 @@ func (c *Client) ReadRecord(logName string, params api.ReadRecordParams) (r log.
 	return r, nil
 }
 
-func (c *Client) WriteRecordsBatch(logName string, bufferSize int, fn func(w recio.Writer) (err error)) (r api.WriteRecordsBatchResponse, err error) {
+func (c *Client) WriteRecordsBatch(logName string, bufferSize int, fn RecordsWriterHandler) (r api.WriteRecordsBatchResponse, err error) {
 
 	pipeReader, pipeWriter := io.Pipe()
 
@@ -278,4 +281,43 @@ func (c *Client) WriteRecordsBatch(logName string, bufferSize int, fn func(w rec
 	api.ReadResponse(resp.Body, &r)
 
 	return r, err
+}
+
+func (c *Client) ReadRecordsBatch(logName string, params api.ReadRecordsBatchParams, bufferSize int, fn RecordsReaderHandler) (err error) {
+
+	encoder := schema.NewEncoder()
+	queryParams := url.Values{}
+
+	err = encoder.Encode(params, queryParams)
+	if err != nil {
+		return err
+	}
+
+	endpoint := c.baseURL + "/logs/" + logName + "/records/batch?" + queryParams.Encode()
+
+	req, err := http.NewRequest(http.MethodGet, endpoint, nil)
+	if err != nil {
+		return err
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		err = api.ReadError(resp.Body)
+		return err
+	}
+
+	br := recio.NewBufferedReader(resp.Body, bufferSize, recio.ModeAuto)
+
+	err = fn(br)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

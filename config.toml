@@ -5,6 +5,9 @@ bind_address = "0.0.0.0:8000"
 shutdown_timeout = 3
 cors_allowed_origins = ["*"]
 http_read_buffer_size = 1048576
+http_write_buffer_size = 1048576
+http_longpoll_timeout = 10
+http_max_longpoll_timeout = 100
 
 [logs]
 

@@ -67,6 +67,23 @@ func (p ReadRecordParams) Validate() (err error) {
 
 type WriteRecordsBatchResponse WriteRecordResponse
 
+type ReadRecordsBatchParams struct {
+	Whence   log.Whence `schema:"whence"`
+	Position int64      `schema:"position"`
+	Count    int64      `schema:"count"`
+	Longpoll bool       `schema:"longpoll"`
+}
+
+func (p ReadRecordsBatchParams) Validate() (err error) {
+	err = validateWhence(p.Whence)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func validateWhence(whence log.Whence) (err error) {
 
 	validWhences := []log.Whence{
