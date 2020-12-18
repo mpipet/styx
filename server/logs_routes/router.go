@@ -57,6 +57,10 @@ func RegisterRoutes(router *mux.Router, logManager *manager.LogManager, config c
 		Methods(http.MethodPost).
 		Headers("Upgrade", "tcp")
 
+	router.HandleFunc("/{name}/records", lr.ReadTCPHandler).
+		Methods(http.MethodGet).
+		Headers("Upgrade", "tcp")
+
 	router.HandleFunc("/{name}/records", lr.WriteHandler).
 		Methods(http.MethodPost)
 

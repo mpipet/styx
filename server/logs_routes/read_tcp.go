@@ -15,7 +15,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func (lr *LogsRouter) WriteTCPHandler(w http.ResponseWriter, r *http.Request) {
+func (lr *LogsRouter) ReadTCPHandler(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 
@@ -36,6 +36,30 @@ func (lr *LogsRouter) WriteTCPHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	params := api.ReadRecordsTCPParams{
+		Whence:   log.SeekOrigin,
+		Position: 0,
+		Count:    10,
+		Follow: false,
+	}
+	query := r.URL.Query()
+
+	err = lr.schemaDecoder.Decode(&params, query)
+	if err != nil {
+		er := api.NewParamsError(err)
+		api.WriteError(w, http.StatusBadRequest, er)
+		logger.Debug(err)
+		return
+	}
+
+	err = params.Validate()
+	if err != nil {
+		er := api.NewParamsError(err)
+		api.WriteError(w, http.StatusBadRequest, er)
+		logger.Debug(err)
+		return
+	}
+
 	managedLog, err := lr.manager.GetLog(name)
 	if err == manager.ErrNotExist {
 		api.WriteError(w, http.StatusNotFound, api.ErrLogNotFound)
@@ -49,7 +73,7 @@ func (lr *LogsRouter) WriteTCPHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logWriter, err := managedLog.NewWriter(recio.ModeAuto)
+	logReader, err := managedLog.NewReader(lr.Config.HTTPReadBufferSize, params.Follow, recio.ModeManual)
 	if err == manager.ErrUnavailable {
 		api.WriteError(w, http.StatusBadRequest, api.ErrLogNotAvailable)
 		logger.Debug(err)
@@ -62,12 +86,19 @@ func (lr *LogsRouter) WriteTCPHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Add("X-Connection-Timeout", strconv.Itoa(lr.Config.TCPTimeout))
+	err = logReader.Seek(params.Position, params.Whence)
+	if err != nil {
+		api.WriteError(w, http.StatusInternalServerError, api.ErrUnknownError)
+		logger.Debug(err)
+		logReader.Close()
+		return
+	}
 
+	w.Header().Add("X-Connection-Timeout", strconv.Itoa(lr.Config.TCPTimeout))
 	conn, err := UpgradeTCP(w)
 	if err != nil {
 		logger.Debug(err)
-		logWriter.Close()
+		logReader.Close()
 		return
 	}
 
@@ -81,91 +112,75 @@ func (lr *LogsRouter) WriteTCPHandler(w http.ResponseWriter, r *http.Request) {
 		logger.Warn(err)
 	}
 
-	tr := tcp.NewTCPReader(conn, lr.Config.TCPWriteBufferSize, lr.Config.TCPReadBufferSize, lr.Config.TCPTimeout, remoteTimeout, recio.ModeManual)
+	tcpWriter := tcp.NewTCPWriter(conn, lr.Config.TCPWriteBufferSize, lr.Config.TCPReadBufferSize, lr.Config.TCPTimeout, remoteTimeout, recio.ModeAuto)
 
-	errored := false
+	tcpWriter.HandleError(func(err error) {
+		logger.Debug(err)
 
-	logWriter.HandleSync(func(progress log.SyncProgress) {
-
-		// If an error occurred during copy we
-		// wont try to send ack back to client.
-		if errored {
-			return
-		}
-
-		_, err = tr.WriteAck(&progress)
-		if err != nil {
-			logger.Debug(err)
-			// If an error occured on the write side of
-			// conn, close peer immediatly.
-			// This will trigger an error on the next read.
-			tr.Close()
-			return
-		}
-
-		err = tr.Flush()
-		if err != nil {
-			logger.Debug(err)
-			// If an error occured on the write side of
-			// conn, close peer immediatly.
-			// This will trigger an error on the next read.
-			tr.Close()
-			return
-		}
+		// Close reader to unlock follow.
+		logReader.Close()
 	})
 
-	err = writeTCP(logWriter, tr)
-	if err != nil {
-
-		errored = true
-		logger.Debug(err)
-
-		// Close log writer first to ensure sync handler wont
-		// send sync progress anymore to the client.
-		logWriter.Close()
-
-		// Send error to the client to give it
-		// a chance to close gracefully.
-		tr.WriteError(err)
-		tr.Flush()
-
-		// Finaly close tcp conn.
-		tr.Close()
-		return
-	}
-
-	err = logWriter.Close()
+	err = readTCP(tcpWriter, logReader, params.Count, params.Follow)
 	if err != nil {
 		logger.Debug(err)
 
-		tr.Close()
+		// Close reader to unlock follow
+		// if not already done.
+		logReader.Close()
+
+		// Try to write error back to
+		// client in case conn is still open.
+		tcpWriter.WriteError(err)
+		tcpWriter.Flush()
+
+		// Close conn in case its still open.
+		tcpWriter.Close()
+
 		return
 	}
 
-	err = tr.Close()
+	err = logReader.Close()
+	if err != nil {
+		logger.Debug(err)
+
+		tcpWriter.Close()
+	}
+
+	err = tcpWriter.Close()
 	if err != nil {
 		logger.Debug(err)
 	}
 }
 
-func writeTCP(lw *log.FaninWriter, tr *tcp.TCPReader) (err error) {
+func readTCP(w *tcp.TCPWriter, lr *log.LogReader, limit int64, follow bool) (err error) {
 
+	count := int64(0)
 	record := log.Record{}
 
 	for {
-		_, err = tr.Read(&record)
-		if err == io.EOF {
+		if count == limit {
 			break
+		}
+
+		_, err := lr.Read(&record)
+		if err == io.EOF {
+
+			if follow == false {
+				break
+			}
+
+			continue
 		}
 
 		if err == recio.ErrMustFill {
 
-			err = lw.Flush()
+			err = w.Flush()
 			if err != nil {
 				return err
 			}
 
-			err = tr.Fill()
+			err = lr.Fill()
 			if err != nil {
 				return err
 			}
@@ -177,13 +192,15 @@ func writeTCP(lw *log.FaninWriter, tr *tcp.TCPReader) (err error) {
 			return err
 		}
 
-		_, err = lw.Write(&record)
+		_, err = w.Write(&record)
 		if err != nil {
 			return err
 		}
+
+		count++
 	}
 
-	err = lw.Flush()
+	err = w.Flush()
 	if err != nil {
 		return err
 	}

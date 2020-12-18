@@ -84,6 +84,23 @@ func (p ReadRecordsBatchParams) Validate() (err error) {
 	return nil
 }
 
+type ReadRecordsTCPParams struct {
+	Whence   log.Whence `schema:"whence"`
+	Position int64      `schema:"position"`
+	Count    int64      `schema:"count"`
+	Follow   bool       `schema:"follow"`
+}
+
+func (p ReadRecordsTCPParams) Validate() (err error) {
+	err = validateWhence(p.Whence)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func validateWhence(whence log.Whence) (err error) {
 
 	validWhences := []log.Whence{
