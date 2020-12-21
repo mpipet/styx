@@ -1,6 +1,9 @@
 package logs
 
 import (
+	"fmt"
+	"time"
+
 	"gitlab.com/dataptive/styx/client"
 	"gitlab.com/dataptive/styx/cmd"
 
@@ -13,6 +16,7 @@ Usage: styx logs list [OPTIONS]
 List available logs
 
 Global Options:
+	--top			Display and update informations about logs
 	--format string		Output format [text|json] (default "text")
 	--host string 		Server to connect to (default "http://localhost:8000")
 	--help 			Display help
@@ -25,6 +29,7 @@ const logsListTmpl = `NAME	STATUS	RECORD COUNT	FILE SIZE	START POSITION	END POSI
 func ListLogs(args []string) {
 
 	listOpts := pflag.NewFlagSet("logs list", pflag.ContinueOnError)
+	top := listOpts.Bool("top", false, "")
 	format := listOpts.String("format", "default", "")
 	host := listOpts.String("host", "http://localhost:8000", "")
 	isHelp := listOpts.Bool("help", false, "")
@@ -47,15 +52,28 @@ func ListLogs(args []string) {
 		cmd.DisplayUsage(cmd.MisuseCode, logsListUsage)
 	}
 
-	logs, err := httpClient.ListLogs()
-	if err != nil {
-		cmd.DisplayError(err)
-	}
+	for {
+		logs, err := httpClient.ListLogs()
+		if err != nil {
+			cmd.DisplayError(err)
+		}
 
-	if *format == "json" {
-		cmd.DisplayAsJSON(logs)
-		return
-	}
+		if *top{
+			// Clear terminal
+			fmt.Printf("\033[H\033[2J")
+		}
 
-	cmd.DisplayAsDefault(logsListTmpl, logs)
+		if *format == "json" {
+			cmd.DisplayAsJSON(logs)
+
+		} else {
+			cmd.DisplayAsDefault(logsListTmpl, logs)
+		}
+
+		if *top {
+			time.Sleep(1 * time.Second)
+		} else {
+			return
+		}
+	}
 }
