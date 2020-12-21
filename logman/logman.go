@@ -23,7 +23,7 @@ type LogManager struct {
 
 func NewLogManager(config Config) (lm *LogManager, err error) {
 
-	logger.Debugf("log manager: starting log manager (data_directory=%s)", config.DataDirectory)
+	logger.Debugf("logman: starting log manager (data_directory=%s)", config.DataDirectory)
 
 	lm = &LogManager{
 		config: config,
@@ -36,7 +36,7 @@ func NewLogManager(config Config) (lm *LogManager, err error) {
 
 	for _, name := range names {
 
-		logger.Debugf("log manager: opening log %s", name)
+		logger.Debugf("logman: opening log %s", name)
 
 		ml, err := openLog(lm.config.DataDirectory, name, log.DefaultOptions, lm.config.WriteBufferSize)
 		if err != nil {
@@ -47,7 +47,7 @@ func NewLogManager(config Config) (lm *LogManager, err error) {
 
 		if ml.Status() != StatusOK {
 
-			logger.Debugf("log manager: scanning log %s", name)
+			logger.Debugf("logman: scanning log %s", name)
 
 			go ml.scan()
 		}
@@ -58,7 +58,7 @@ func NewLogManager(config Config) (lm *LogManager, err error) {
 
 func (lm *LogManager) Close() (err error) {
 
-	logger.Debugf("log manager: closing log manager")
+	logger.Debugf("logman: closing log manager")
 
 	lm.logsLock.Lock()
 	defer lm.logsLock.Unlock()
