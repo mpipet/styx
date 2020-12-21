@@ -16,7 +16,7 @@ Usage: styx logs list [OPTIONS]
 List available logs
 
 Global Options:
-	--top			Display and update informations about logs
+	--watch			Display and update informations about logs
 	--format string		Output format [text|json] (default "text")
 	--host string 		Server to connect to (default "http://localhost:8000")
 	--help 			Display help
@@ -29,7 +29,7 @@ const logsListTmpl = `NAME	STATUS	RECORD COUNT	FILE SIZE	START POSITION	END POSI
 func ListLogs(args []string) {
 
 	listOpts := pflag.NewFlagSet("logs list", pflag.ContinueOnError)
-	top := listOpts.Bool("top", false, "")
+	watch := listOpts.Bool("watch", false, "")
 	format := listOpts.String("format", "default", "")
 	host := listOpts.String("host", "http://localhost:8000", "")
 	isHelp := listOpts.Bool("help", false, "")
@@ -58,7 +58,7 @@ func ListLogs(args []string) {
 			cmd.DisplayError(err)
 		}
 
-		if *top{
+		if *watch{
 			// Clear terminal
 			fmt.Printf("\033[H\033[2J")
 		}
@@ -70,7 +70,7 @@ func ListLogs(args []string) {
 			cmd.DisplayAsDefault(logsListTmpl, logs)
 		}
 
-		if *top {
+		if *watch {
 			time.Sleep(1 * time.Second)
 		} else {
 			return
