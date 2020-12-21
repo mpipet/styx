@@ -1,10 +1,11 @@
 package main
 
 import (
-	"fmt"
+	// "fmt"
 	"os"
-	"strings"
+	// "strings"
 
+	"gitlab.com/dataptive/styx/cmd"
 	"gitlab.com/dataptive/styx/logger"
 	"gitlab.com/dataptive/styx/server"
 	"gitlab.com/dataptive/styx/server/config"
@@ -36,18 +37,15 @@ func main() {
 
 	err := options.Parse(os.Args[1:])
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s\n\n", strings.TrimSpace(usage))
-		os.Exit(2)
+		cmd.DisplayUsage(cmd.MisuseCode, usage)
 	}
 
 	if options.NArg() != 0 {
-		fmt.Fprintf(os.Stderr, "%s\n\n", strings.TrimSpace(usage))
-		os.Exit(2)
+		cmd.DisplayUsage(cmd.MisuseCode, usage)
 	}
 
 	if *help {
-		fmt.Fprintf(os.Stderr, "%s\n\n", strings.TrimSpace(usage))
-		os.Exit(0)
+		cmd.DisplayUsage(cmd.SuccessCode, usage)
 	}
 
 	logsLevels := map[string]int{
@@ -61,15 +59,14 @@ func main() {
 
 	logLevel, exists := logsLevels[*level]
 	if !exists {
-		fmt.Fprintf(os.Stderr, "%s\n\n", strings.TrimSpace(usage))
-		os.Exit(2)
+		cmd.DisplayUsage(cmd.MisuseCode, usage)
 	}
 
 	logger.SetLevel(logLevel)
 
 	serverConfig, err := config.Load(*configPath)
 	if err != nil {
-		logger.Fatal(err)
+		cmd.DisplayError(err)
 	}
 
 	styxServer, err := server.NewServer(serverConfig)
