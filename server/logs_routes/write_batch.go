@@ -7,7 +7,7 @@ import (
 	"gitlab.com/dataptive/styx/api"
 	"gitlab.com/dataptive/styx/log"
 	"gitlab.com/dataptive/styx/logger"
-	"gitlab.com/dataptive/styx/manager"
+	"gitlab.com/dataptive/styx/logman"
 	"gitlab.com/dataptive/styx/recio"
 
 	"github.com/gorilla/mux"
@@ -19,7 +19,7 @@ func (lr *LogsRouter) WriteBatchHandler(w http.ResponseWriter, r *http.Request) 
 	name := vars["name"]
 
 	managedLog, err := lr.manager.GetLog(name)
-	if err == manager.ErrNotExist {
+	if err == logman.ErrNotExist {
 		api.WriteError(w, http.StatusNotFound, api.ErrLogNotFound)
 		logger.Debug(err)
 		return
@@ -34,7 +34,7 @@ func (lr *LogsRouter) WriteBatchHandler(w http.ResponseWriter, r *http.Request) 
 	bufferedReader := recio.NewBufferedReader(r.Body, lr.Config.HTTPReadBufferSize, recio.ModeManual)
 
 	logWriter, err := managedLog.NewWriter(recio.ModeAuto)
-	if err == manager.ErrUnavailable {
+	if err == logman.ErrUnavailable {
 		api.WriteError(w, http.StatusBadRequest, api.ErrLogNotAvailable)
 		logger.Debug(err)
 		return

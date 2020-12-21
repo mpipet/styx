@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"gitlab.com/dataptive/styx/log"
-	"gitlab.com/dataptive/styx/manager"
+	"gitlab.com/dataptive/styx/logman"
 )
 
 var (
@@ -13,7 +13,7 @@ var (
 
 type LogInfo struct {
 	Name          string            `json:"name"`
-	Status        manager.LogStatus `json:"status"`
+	Status        logman.LogStatus  `json:"status"`
 	RecordCount   int64             `json:"record_count"`
 	FileSize      int64             `json:"file_size"`
 	StartPosition int64             `json:"start_position"`

@@ -1,7 +1,7 @@
 package config
 
 import (
-	"gitlab.com/dataptive/styx/manager"
+	"gitlab.com/dataptive/styx/logman"
 
 	"github.com/BurntSushi/toml"
 )
@@ -38,7 +38,7 @@ type Config struct {
 	TCPReadBufferSize      int
 	TCPWriteBufferSize     int
 	TCPTimeout             int
-	LogManager             manager.Config
+	LogManager             logman.Config
 }
 
 func Load(path string) (c Config, err error) {
@@ -60,7 +60,7 @@ func Load(path string) (c Config, err error) {
 	c.TCPReadBufferSize = tc.TCPReadBufferSize
 	c.TCPWriteBufferSize = tc.TCPWriteBufferSize
 	c.TCPTimeout = tc.TCPTimeout
-	c.LogManager = manager.Config(tc.LogManager)
+	c.LogManager = logman.Config(tc.LogManager)
 
 	return c, nil
 }

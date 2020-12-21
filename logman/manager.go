@@ -1,4 +1,4 @@
-package manager
+package logman
 
 import (
 	"errors"
@@ -11,8 +11,8 @@ import (
 )
 
 var (
-	ErrNotExist    = errors.New("manager: log does not exist")
-	ErrUnavailable = errors.New("manager: log unavailable")
+	ErrNotExist    = errors.New("log manager: log does not exist")
+	ErrUnavailable = errors.New("log manager: log unavailable")
 )
 
 type LogManager struct {
@@ -23,7 +23,7 @@ type LogManager struct {
 
 func NewLogManager(config Config) (lm *LogManager, err error) {
 
-	logger.Debugf("manager: starting log manager (data_directory=%s)", config.DataDirectory)
+	logger.Debugf("log manager: starting log manager (data_directory=%s)", config.DataDirectory)
 
 	lm = &LogManager{
 		config: config,
@@ -36,7 +36,7 @@ func NewLogManager(config Config) (lm *LogManager, err error) {
 
 	for _, name := range names {
 
-		logger.Debugf("manager: opening log %s", name)
+		logger.Debugf("log manager: opening log %s", name)
 
 		ml, err := openLog(lm.config.DataDirectory, name, log.DefaultOptions, lm.config.WriteBufferSize)
 		if err != nil {
@@ -47,7 +47,7 @@ func NewLogManager(config Config) (lm *LogManager, err error) {
 
 		if ml.Status() != StatusOK {
 
-			logger.Debugf("manager: scanning log %s", name)
+			logger.Debugf("log manager: scanning log %s", name)
 
 			go ml.scan()
 		}
@@ -58,7 +58,7 @@ func NewLogManager(config Config) (lm *LogManager, err error) {
 
 func (lm *LogManager) Close() (err error) {
 
-	logger.Debugf("manager: closing log manager")
+	logger.Debugf("log manager: closing log manager")
 
 	lm.logsLock.Lock()
 	defer lm.logsLock.Unlock()

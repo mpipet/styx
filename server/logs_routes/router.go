@@ -3,7 +3,7 @@ package logs_routes
 import (
 	"net/http"
 
-	"gitlab.com/dataptive/styx/manager"
+	"gitlab.com/dataptive/styx/logman"
 	"gitlab.com/dataptive/styx/server/config"
 
 	"github.com/gorilla/mux"
@@ -12,12 +12,12 @@ import (
 
 type LogsRouter struct {
 	router        *mux.Router
-	manager       *manager.LogManager
+	manager       *logman.LogManager
 	Config        config.Config
 	schemaDecoder *schema.Decoder
 }
 
-func RegisterRoutes(router *mux.Router, logManager *manager.LogManager, config config.Config) (lr *LogsRouter) {
+func RegisterRoutes(router *mux.Router, logManager *logman.LogManager, config config.Config) (lr *LogsRouter) {
 
 	var decoder = schema.NewDecoder()
 	decoder.IgnoreUnknownKeys(true)

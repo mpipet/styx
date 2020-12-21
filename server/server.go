@@ -12,7 +12,7 @@ import (
 
 	"gitlab.com/dataptive/styx/lockfile"
 	"gitlab.com/dataptive/styx/logger"
-	"gitlab.com/dataptive/styx/manager"
+	"gitlab.com/dataptive/styx/logman"
 	"gitlab.com/dataptive/styx/server/config"
 )
 
@@ -57,7 +57,7 @@ func (s *Server) Run() (err error) {
 		}
 	}
 
-	logManager, err := manager.NewLogManager(s.config.LogManager)
+	logManager, err := logman.NewLogManager(s.config.LogManager)
 	if err != nil {
 		return err
 	}

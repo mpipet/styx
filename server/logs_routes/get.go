@@ -5,7 +5,7 @@ import (
 
 	"gitlab.com/dataptive/styx/api"
 	"gitlab.com/dataptive/styx/logger"
-	"gitlab.com/dataptive/styx/manager"
+	"gitlab.com/dataptive/styx/logman"
 
 	"github.com/gorilla/mux"
 )
@@ -16,7 +16,7 @@ func (lr *LogsRouter) GetHandler(w http.ResponseWriter, r *http.Request) {
 	name := vars["name"]
 
 	managedLog, err := lr.manager.GetLog(name)
-	if err == manager.ErrNotExist {
+	if err == logman.ErrNotExist {
 		api.WriteError(w, http.StatusNotFound, api.ErrLogNotFound)
 		logger.Debug(err)
 		return

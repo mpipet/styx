@@ -1,4 +1,4 @@
-package manager
+package logman
 
 import (
 	"io"

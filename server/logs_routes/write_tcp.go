@@ -9,7 +9,7 @@ import (
 	"gitlab.com/dataptive/styx/api/tcp"
 	"gitlab.com/dataptive/styx/log"
 	"gitlab.com/dataptive/styx/logger"
-	"gitlab.com/dataptive/styx/manager"
+	"gitlab.com/dataptive/styx/logman"
 	"gitlab.com/dataptive/styx/recio"
 
 	"github.com/gorilla/mux"
@@ -37,7 +37,7 @@ func (lr *LogsRouter) WriteTCPHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	managedLog, err := lr.manager.GetLog(name)
-	if err == manager.ErrNotExist {
+	if err == logman.ErrNotExist {
 		api.WriteError(w, http.StatusNotFound, api.ErrLogNotFound)
 		logger.Debug(err)
 		return
@@ -50,7 +50,7 @@ func (lr *LogsRouter) WriteTCPHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	logWriter, err := managedLog.NewWriter(recio.ModeAuto)
-	if err == manager.ErrUnavailable {
+	if err == logman.ErrUnavailable {
 		api.WriteError(w, http.StatusBadRequest, api.ErrLogNotAvailable)
 		logger.Debug(err)
 		return

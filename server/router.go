@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"gitlab.com/dataptive/styx/api"
-	"gitlab.com/dataptive/styx/manager"
+	"gitlab.com/dataptive/styx/logman"
 	"gitlab.com/dataptive/styx/server/config"
 	"gitlab.com/dataptive/styx/server/logs_routes"
 
@@ -17,7 +17,7 @@ type Router struct {
 	config config.Config
 }
 
-func NewRouter(logManager *manager.LogManager, config config.Config) (r *Router) {
+func NewRouter(logManager *logman.LogManager, config config.Config) (r *Router) {
 
 	router := mux.NewRouter()
 
