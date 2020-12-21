@@ -291,7 +291,7 @@ func (c *Client) WriteRecordsBatch(logName string, bufferSize int, fn RecordsWri
 	return r, err
 }
 
-func (c *Client) ReadRecordsBatch(logName string, params api.ReadRecordsBatchParams, bufferSize int, fn RecordsReaderHandler) (err error) {
+func (c *Client) ReadRecordsBatch(logName string, params api.ReadRecordsBatchParams, bufferSize int, timeout int, fn RecordsReaderHandler) (err error) {
 
 	encoder := schema.NewEncoder()
 	queryParams := url.Values{}
@@ -307,6 +307,8 @@ func (c *Client) ReadRecordsBatch(logName string, params api.ReadRecordsBatchPar
 	if err != nil {
 		return err
 	}
+
+	req.Header.Add(api.TimeoutHeaderName, strconv.Itoa(timeout))
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
