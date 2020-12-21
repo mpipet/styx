@@ -341,7 +341,7 @@ func (c *Client) WriteRecordsTCP(logName string, flag recio.IOMode, writeBufferS
 
 	req.Header.Add("Connection", "upgrade")
 	req.Header.Add("Upgrade", "tcp")
-	req.Header.Add("X-Connection-Timeout", strconv.Itoa(timeout))
+	req.Header.Add(api.TimeoutHeaderName, strconv.Itoa(timeout))
 
 	var tcpConn *net.TCPConn
 
@@ -376,7 +376,7 @@ func (c *Client) WriteRecordsTCP(logName string, flag recio.IOMode, writeBufferS
 	}
 
 	var remoteTimeout int
-	rawTimeout := resp.Header.Get("X-Connection-Timeout")
+	rawTimeout := resp.Header.Get(api.TimeoutHeaderName)
 	if rawTimeout != "" {
 
 		remoteTimeout, err = strconv.Atoi(rawTimeout)
@@ -409,7 +409,7 @@ func (c *Client) ReadRecordsTCP(name string, params api.ReadRecordsTCPParams, fl
 
 	req.Header.Add("Connection", "upgrade")
 	req.Header.Add("Upgrade", "tcp")
-	req.Header.Add("X-Connection-Timeout", strconv.Itoa(timeout))
+	req.Header.Add(api.TimeoutHeaderName, strconv.Itoa(timeout))
 
 	var tcpConn *net.TCPConn
 
@@ -444,7 +444,7 @@ func (c *Client) ReadRecordsTCP(name string, params api.ReadRecordsTCPParams, fl
 	}
 
 	var remoteTimeout int
-	rawTimeout := resp.Header.Get("X-Connection-Timeout")
+	rawTimeout := resp.Header.Get(api.TimeoutHeaderName)
 	if rawTimeout != "" {
 
 		remoteTimeout, err = strconv.Atoi(rawTimeout)

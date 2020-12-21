@@ -7,6 +7,10 @@ import (
 	"gitlab.com/dataptive/styx/logman"
 )
 
+const (
+	TimeoutHeaderName = "X-Connection-Timeout"
+)
+
 var (
 	ErrInvalidWhence = errors.New("invalid whence")
 )

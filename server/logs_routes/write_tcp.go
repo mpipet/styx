@@ -25,7 +25,7 @@ func (lr *LogsRouter) WriteTCPHandler(w http.ResponseWriter, r *http.Request) {
 	remoteTimeout := lr.config.TCPTimeout
 
 	// TODO: Change the header name to a more adequate one.
-	rawTimeout := r.Header.Get("X-Connection-Timeout")
+	rawTimeout := r.Header.Get(api.TimeoutHeaderName)
 	if rawTimeout != "" {
 
 		remoteTimeout, err = strconv.Atoi(rawTimeout)
@@ -62,7 +62,7 @@ func (lr *LogsRouter) WriteTCPHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Add("X-Connection-Timeout", strconv.Itoa(lr.config.TCPTimeout))
+	w.Header().Add(api.TimeoutHeaderName, strconv.Itoa(lr.config.TCPTimeout))
 
 	conn, err := UpgradeTCP(w)
 	if err != nil {

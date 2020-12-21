@@ -53,7 +53,7 @@ func (lr *LogsRouter) ReadBatchHandler(w http.ResponseWriter, r *http.Request) {
 
 	if params.Longpoll {
 
-		rawTimeout := r.Header.Get("Request-Timeout")
+		rawTimeout := r.Header.Get(api.TimeoutHeaderName)
 		if rawTimeout != "" {
 
 			timeout, err = strconv.Atoi(rawTimeout)
