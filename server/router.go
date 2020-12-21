@@ -5,8 +5,10 @@ import (
 
 	"gitlab.com/dataptive/styx/api"
 	"gitlab.com/dataptive/styx/logman"
+	"gitlab.com/dataptive/styx/nodeman"
 	"gitlab.com/dataptive/styx/server/config"
 	"gitlab.com/dataptive/styx/server/logs_routes"
+	"gitlab.com/dataptive/styx/server/nodes_routes"
 
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
@@ -17,7 +19,7 @@ type Router struct {
 	config config.Config
 }
 
-func NewRouter(logManager *logman.LogManager, config config.Config) (r *Router) {
+func NewRouter(logManager *logman.LogManager, nodeManager *nodeman.NodeManager, config config.Config) (r *Router) {
 
 	router := mux.NewRouter()
 
@@ -30,6 +32,7 @@ func NewRouter(logManager *logman.LogManager, config config.Config) (r *Router) 
 	}
 
 	logs_routes.RegisterRoutes(router.PathPrefix("/logs").Subrouter(), logManager, config)
+	nodes_routes.RegisterRoutes(router.PathPrefix("/nodes").Subrouter(), nodeManager, config)
 
 	c := cors.New(cors.Options{
 		AllowedOrigins:   r.config.CORSAllowedOrigins,

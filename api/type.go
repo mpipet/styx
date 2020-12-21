@@ -125,3 +125,12 @@ func validateWhence(whence log.Whence) (err error) {
 
 	return nil
 }
+
+type ListNodesResponse []Node
+
+type Node struct {
+	Name string `json:"name"`
+	State string `json:"state"`
+	Suffrage string `json:"suffrage"`
+	Address string `json:"address"`
+}

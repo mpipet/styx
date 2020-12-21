@@ -12,7 +12,13 @@ tcp_read_buffer_size = 1048576
 tcp_write_buffer_size = 1048576
 tcp_timeout = 100
 
-[logs]
+[log_manager]
 
-data_directory = "./data"
+data_directory = "./node1/logs"
 write_buffer_size = 1048576
+
+[node_manager]
+
+node_name = "node1"
+state_directory = "./node1/state"
+raft_address = "127.0.0.1:11001"

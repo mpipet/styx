@@ -2,28 +2,36 @@ package config
 
 import (
 	"gitlab.com/dataptive/styx/logman"
+	"gitlab.com/dataptive/styx/nodeman"
 
 	"github.com/BurntSushi/toml"
 )
 
 type TOMLConfig struct {
-	PIDFile                string            `toml:"pid_file"`
-	BindAddress            string            `toml:"bind_address"`
-	ShutdownTimeout        int               `toml:"shutdown_timeout"`
-	CORSAllowedOrigins     []string          `toml:"cors_allowed_origins"`
-	HTTPWriteBufferSize    int               `toml:"http_write_buffer_size"`
-	HTTPReadBufferSize     int               `toml:"http_read_buffer_size"`
-	HTTPLongpollTimeout    int               `toml:"http_longpoll_timeout"`
-	HTTPMaxLongpollTimeout int               `toml:"http_max_longpoll_timeout"`
-	TCPReadBufferSize      int               `toml:"tcp_read_buffer_size"`
-	TCPWriteBufferSize     int               `toml:"tcp_write_buffer_size"`
-	TCPTimeout             int               `toml:"tcp_timeout"`
-	LogManager             TOMLManagerConfig `toml:"logs"`
+	PIDFile                string                `toml:"pid_file"`
+	BindAddress            string                `toml:"bind_address"`
+	ShutdownTimeout        int                   `toml:"shutdown_timeout"`
+	CORSAllowedOrigins     []string              `toml:"cors_allowed_origins"`
+	HTTPWriteBufferSize    int                   `toml:"http_write_buffer_size"`
+	HTTPReadBufferSize     int                   `toml:"http_read_buffer_size"`
+	HTTPLongpollTimeout    int                   `toml:"http_longpoll_timeout"`
+	HTTPMaxLongpollTimeout int                   `toml:"http_max_longpoll_timeout"`
+	TCPReadBufferSize      int                   `toml:"tcp_read_buffer_size"`
+	TCPWriteBufferSize     int                   `toml:"tcp_write_buffer_size"`
+	TCPTimeout             int                   `toml:"tcp_timeout"`
+	LogManager             TOMLLogManagerConfig  `toml:"log_manager"`
+	NodeManager            TOMLNodeManagerConfig `toml:"node_manager"`
 }
 
-type TOMLManagerConfig struct {
+type TOMLLogManagerConfig struct {
 	DataDirectory   string `toml:"data_directory"`
 	WriteBufferSize int    `toml:"write_buffer_size"`
+}
+
+type TOMLNodeManagerConfig struct {
+	NodeName       string `toml:"node_name"`
+	StateDirectory string `toml:"state_directory"`
+	RaftAddress    string `toml:"raft_address"`
 }
 
 type Config struct {
@@ -39,6 +47,7 @@ type Config struct {
 	TCPWriteBufferSize     int
 	TCPTimeout             int
 	LogManager             logman.Config
+	NodeManager            nodeman.Config
 }
 
 func Load(path string) (c Config, err error) {
@@ -61,6 +70,7 @@ func Load(path string) (c Config, err error) {
 	c.TCPWriteBufferSize = tc.TCPWriteBufferSize
 	c.TCPTimeout = tc.TCPTimeout
 	c.LogManager = logman.Config(tc.LogManager)
+	c.NodeManager = nodeman.Config(tc.NodeManager)
 
 	return c, nil
 }
