@@ -49,7 +49,7 @@ func (lr *LogsRouter) ReadBatchHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	timeout := lr.Config.HTTPLongpollTimeout
+	timeout := lr.config.HTTPLongpollTimeout
 
 	if params.Longpoll {
 
@@ -65,8 +65,8 @@ func (lr *LogsRouter) ReadBatchHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Limit the timeout as defined in config.
-		if timeout > lr.Config.HTTPMaxLongpollTimeout {
-			timeout = lr.Config.HTTPMaxLongpollTimeout
+		if timeout > lr.config.HTTPMaxLongpollTimeout {
+			timeout = lr.config.HTTPMaxLongpollTimeout
 		}
 	}
 
@@ -83,9 +83,9 @@ func (lr *LogsRouter) ReadBatchHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bufferedWriter := recio.NewBufferedWriter(w, lr.Config.HTTPWriteBufferSize, recio.ModeAuto)
+	bufferedWriter := recio.NewBufferedWriter(w, lr.config.HTTPWriteBufferSize, recio.ModeAuto)
 
-	logReader, err := managedLog.NewReader(lr.Config.HTTPReadBufferSize, params.Longpoll, recio.ModeManual)
+	logReader, err := managedLog.NewReader(lr.config.HTTPReadBufferSize, params.Longpoll, recio.ModeManual)
 	if err == logman.ErrUnavailable {
 		api.WriteError(w, http.StatusBadRequest, api.ErrLogNotAvailable)
 		logger.Debug(err)

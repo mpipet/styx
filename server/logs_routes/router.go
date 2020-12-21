@@ -13,7 +13,7 @@ import (
 type LogsRouter struct {
 	router        *mux.Router
 	manager       *logman.LogManager
-	Config        config.Config
+	config        config.Config
 	schemaDecoder *schema.Decoder
 }
 
@@ -25,7 +25,7 @@ func RegisterRoutes(router *mux.Router, logManager *logman.LogManager, config co
 	lr = &LogsRouter{
 		router:        router,
 		manager:       logManager,
-		Config:        config,
+		config:        config,
 		schemaDecoder: decoder,
 	}
 
