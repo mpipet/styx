@@ -31,7 +31,7 @@ func (lr *LogsRouter) WriteBatchHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	bufferedReader := recio.NewBufferedReader(r.Body, lr.Config.HTTPReadBufferSize, recio.ModeManual)
+	bufferedReader := recio.NewBufferedReader(r.Body, lr.config.HTTPReadBufferSize, recio.ModeManual)
 
 	logWriter, err := managedLog.NewWriter(recio.ModeAuto)
 	if err == logman.ErrUnavailable {

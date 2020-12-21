@@ -22,10 +22,10 @@ func (lr *LogsRouter) WriteTCPHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	name := vars["name"]
 
-	remoteTimeout := lr.Config.TCPTimeout
+	remoteTimeout := lr.config.TCPTimeout
 
 	// TODO: Change the header name to a more adequate one.
-	rawTimeout := r.Header.Get("X-Connection-Timeout")
+	rawTimeout := r.Header.Get(api.TimeoutHeaderName)
 	if rawTimeout != "" {
 
 		remoteTimeout, err = strconv.Atoi(rawTimeout)
@@ -62,7 +62,7 @@ func (lr *LogsRouter) WriteTCPHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Add("X-Connection-Timeout", strconv.Itoa(lr.Config.TCPTimeout))
+	w.Header().Add(api.TimeoutHeaderName, strconv.Itoa(lr.config.TCPTimeout))
 
 	conn, err := UpgradeTCP(w)
 	if err != nil {
@@ -71,17 +71,17 @@ func (lr *LogsRouter) WriteTCPHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = conn.SetReadBuffer(lr.Config.TCPReadBufferSize)
+	err = conn.SetReadBuffer(lr.config.TCPReadBufferSize)
 	if err != nil {
 		logger.Warn(err)
 	}
 
-	err = conn.SetWriteBuffer(lr.Config.TCPWriteBufferSize)
+	err = conn.SetWriteBuffer(lr.config.TCPWriteBufferSize)
 	if err != nil {
 		logger.Warn(err)
 	}
 
-	tr := tcp.NewTCPReader(conn, lr.Config.TCPWriteBufferSize, lr.Config.TCPReadBufferSize, lr.Config.TCPTimeout, remoteTimeout, recio.ModeManual)
+	tr := tcp.NewTCPReader(conn, lr.config.TCPWriteBufferSize, lr.config.TCPReadBufferSize, lr.config.TCPTimeout, remoteTimeout, recio.ModeManual)
 
 	errored := false
 
