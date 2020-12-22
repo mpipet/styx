@@ -224,7 +224,7 @@ func (tp *TCPPeer) heartbeater() {
 			tp.message.Type = TypeHeartbeatMessage
 			tp.message.Payload = tp.heartbeatMessage
 
-			_, err := tp.messageWriter.WriteMessage(tp.message)
+			_, err := tp.WriteMessage(tp.message)
 			if err != nil && err != recio.ErrMustFlush {
 				if tp.errorHandler != nil {
 					go tp.errorHandler(err)
@@ -233,7 +233,7 @@ func (tp *TCPPeer) heartbeater() {
 				break
 			}
 
-			err = tp.messageWriter.Flush()
+			err = tp.Flush()
 			if err != nil {
 				if tp.errorHandler != nil {
 					go tp.errorHandler(err)
