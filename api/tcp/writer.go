@@ -8,8 +8,6 @@ import (
 	"gitlab.com/dataptive/styx/recio"
 )
 
-type ErrorHandler func(err error)
-
 type TCPWriter struct {
 	conn          *net.TCPConn
 	ioMode        recio.IOMode
@@ -115,6 +113,7 @@ func (tw *TCPWriter) HandleSync(h log.SyncHandler) {
 func (tw *TCPWriter) HandleError(h ErrorHandler) {
 
 	tw.errorHandler = h
+	tw.tcpPeer.errorHandler = h
 }
 
 func (tw *TCPWriter) reader() {
@@ -126,6 +125,10 @@ func (tw *TCPWriter) reader() {
 		if err == io.EOF {
 			// The connection will not be readable anymore.
 			// We can shutdown the goroutine.
+			if tw.errorHandler != nil {
+				tw.errorHandler(err)
+			}
+
 			break
 		}
 

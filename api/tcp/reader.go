@@ -153,3 +153,8 @@ Retry:
 
 	return n, nil
 }
+
+func (tr *TCPReader) HandleError(h ErrorHandler) {
+
+	tr.tcpPeer.errorHandler = h
+}

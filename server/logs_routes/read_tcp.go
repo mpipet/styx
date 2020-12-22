@@ -115,7 +115,10 @@ func (lr *LogsRouter) ReadTCPHandler(w http.ResponseWriter, r *http.Request) {
 	tcpWriter := tcp.NewTCPWriter(conn, lr.config.TCPWriteBufferSize, lr.config.TCPReadBufferSize, lr.config.TCPTimeout, remoteTimeout, recio.ModeAuto)
 
 	tcpWriter.HandleError(func(err error) {
-		logger.Debug(err)
+
+		if err != io.EOF {
+			logger.Debug(err)
+		}
 
 		// Close reader to unlock follow.
 		logReader.Close()

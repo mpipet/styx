@@ -83,6 +83,13 @@ func (lr *LogsRouter) WriteTCPHandler(w http.ResponseWriter, r *http.Request) {
 
 	tr := tcp.NewTCPReader(conn, lr.config.TCPWriteBufferSize, lr.config.TCPReadBufferSize, lr.config.TCPTimeout, remoteTimeout, recio.ModeManual)
 
+	tr.HandleError(func(err error) {
+		logger.Debug(err)
+
+		// Close tcp reader in case of an heartbeat error.
+		tr.Close()
+	})
+
 	errored := false
 
 	logWriter.HandleSync(func(progress log.SyncProgress) {
