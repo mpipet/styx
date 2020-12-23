@@ -8,9 +8,9 @@ import (
 )
 
 const (
-	TimeoutHeaderName    = "X-Connection-Timeout"
-	RecordLinesMediaType = "application/x.styx-record-lines"
-	RecordBatchMediaType = "application/x.styx-record-batch"
+	TimeoutHeaderName     = "X-Connection-Timeout"
+	RecordLinesMediaType  = "application/x.styx-record-lines"
+	RecordBinaryMediaType = "application/x.styx-record-binary"
 )
 
 var (

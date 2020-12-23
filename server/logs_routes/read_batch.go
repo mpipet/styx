@@ -106,7 +106,7 @@ func (lr *LogsRouter) ReadBatchHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/octet-stream")
+	w.Header().Set("Content-Type", api.RecordBinaryMediaType)
 	w.WriteHeader(http.StatusOK)
 
 	fillTimeout := time.Duration(timeout) * time.Second

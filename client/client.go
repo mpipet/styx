@@ -251,12 +251,14 @@ func (c *Client) WriteRecordsBatch(logName string, bufferSize int, fn RecordsWri
 
 		bufferedWriter := recio.NewBufferedWriter(pipeWriter, bufferSize, recio.ModeAuto)
 
-	endpoint := c.baseURL + "/logs/" + logName + "/records/batch"
+	endpoint := c.baseURL + "/logs/" + logName + "/records"
 
 	req, err := http.NewRequest(http.MethodPost, endpoint, pipeReader)
 	if err != nil {
 		return r, err
 	}
+
+	req.Header.Add("Content-Type", api.RecordBinaryMediaType)
 
 	go func() {
 		err := fn(bufferedWriter)
@@ -301,13 +303,14 @@ func (c *Client) ReadRecordsBatch(logName string, params api.ReadRecordsBatchPar
 		return err
 	}
 
-	endpoint := c.baseURL + "/logs/" + logName + "/records/batch?" + queryParams.Encode()
+	endpoint := c.baseURL + "/logs/" + logName + "/records?" + queryParams.Encode()
 
 	req, err := http.NewRequest(http.MethodGet, endpoint, nil)
 	if err != nil {
 		return err
 	}
 
+	req.Header.Add("Accept", api.RecordBinaryMediaType)
 	req.Header.Add(api.TimeoutHeaderName, strconv.Itoa(timeout))
 
 	resp, err := c.httpClient.Do(req)
