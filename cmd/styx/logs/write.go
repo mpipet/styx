@@ -32,9 +32,9 @@ Global Options:
 func WriteLog(args []string) {
 
 	const (
-		readBufferSize = 1 << 20 // 1MB
+		readBufferSize  = 1 << 20 // 1MB
 		writeBufferSize = 1 << 20 // 1MB
-		timeout = 100
+		timeout         = 100
 	)
 
 	writeOpts := pflag.NewFlagSet("logs write", pflag.ContinueOnError)
@@ -67,22 +67,22 @@ func WriteLog(args []string) {
 		cmd.DisplayError(err)
 	}
 
-	reader := recio.NewBufferedReader(os.Stdin, readBufferSize, recio.ModeAuto)
-
+	var reader recio.Reader
 	var decoder recio.Decoder
-	if *binary {
-		decoder = &log.Record{}
-	} else {
-		switch(*lineEnding) {
-		case "cr":
-			decoder = &recioutil.LineCR{}
-		case "lf":
-			decoder = &recioutil.LineLF{}
-		case "crlf":
-			decoder = &recioutil.LineCRLF{}
-		default:
+
+	bufferedReader := recio.NewBufferedReader(os.Stdin, readBufferSize, recio.ModeAuto)
+	reader = bufferedReader
+
+	if !*binary {
+		var delimiter []byte
+		decoder = &recioutil.Line{}
+
+		delimiter, valid := recioutil.LineEndings[*lineEnding]
+		if !valid {
 			cmd.DisplayError(errors.New("unknown line ending"))
 		}
+
+		reader = recioutil.NewLineReader(bufferedReader, delimiter)
 	}
 
 	isTerm, err := cmd.IsTerminal(os.Stdin)
@@ -103,19 +103,11 @@ func WriteLog(args []string) {
 			cmd.DisplayError(err)
 		}
 
+		// Convert decoder to record
 		if *binary {
-			// Convert back record as decoder to record
 			record = decoder.(*log.Record)
 		} else {
-			// Convert line as decoder interface to record
-			switch(*lineEnding) {
-			case "cr":
-				record = (*log.Record)(decoder.(*recioutil.LineCR))
-			case "lf":
-				record = (*log.Record)(decoder.(*recioutil.LineLF))
-			case "crlf":
-				record = (*log.Record)(decoder.(*recioutil.LineCRLF))
-			}
+			record = (*log.Record)(decoder.(*recioutil.Line))
 		}
 
 		_, err = tcpWriter.Write(record)

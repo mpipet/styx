@@ -38,9 +38,9 @@ Global Options:
 func ReadLog(args []string) {
 
 	const (
-		readBufferSize = 1 << 20 // 1MB
+		readBufferSize  = 1 << 20 // 1MB
 		writeBufferSize = 1 << 20 // 1MB
-		timeout = 100
+		timeout         = 100
 	)
 
 	readOpts := pflag.NewFlagSet("read", pflag.ContinueOnError)
@@ -73,10 +73,10 @@ func ReadLog(args []string) {
 	httpClient := client.NewClient(*host)
 
 	params := api.ReadRecordsTCPParams{
-		Whence: log.Whence(*whence),
+		Whence:   log.Whence(*whence),
 		Position: *position,
-		Count: *count,
-		Follow: *follow,
+		Count:    *count,
+		Follow:   *follow,
 	}
 
 	tcpReader, err := httpClient.ReadRecordsTCP(readOpts.Args()[0], params, recio.ModeAuto, readBufferSize, timeout)
@@ -84,7 +84,23 @@ func ReadLog(args []string) {
 		cmd.DisplayError(err)
 	}
 
+	var writer recio.Writer
+	var encoder recio.Encoder
+
 	bufferedWriter := recio.NewBufferedWriter(os.Stdout, writeBufferSize, recio.ModeAuto)
+	writer = bufferedWriter
+
+	if !*binary {
+		var delimiter []byte
+		encoder = &recioutil.Line{}
+
+		delimiter, valid := recioutil.LineEndings[*lineEnding]
+		if !valid {
+			cmd.DisplayError(errors.New("unknown line ending"))
+		}
+
+		writer = recioutil.NewLineWriter(bufferedWriter, delimiter)
+	}
 
 	isTerm, err := cmd.IsTerminal(os.Stdin)
 	if err != nil {
@@ -92,8 +108,6 @@ func ReadLog(args []string) {
 	}
 
 	mustFlush := isTerm || *unbuffered
-
-	var encoder recio.Encoder
 	record := &log.Record{}
 	for {
 		_, err := tcpReader.Read(record)
@@ -105,24 +119,13 @@ func ReadLog(args []string) {
 			cmd.DisplayError(err)
 		}
 
-
 		if *binary {
 			encoder = record
 		} else {
-			encoder = (*recioutil.LineLF)(record)
-			switch(*lineEnding) {
-			case "cr":
-				encoder = (*recioutil.LineCR)(record)
-			case "lf":
-				encoder = (*recioutil.LineLF)(record)
-			case "crlf":
-				encoder = (*recioutil.LineCRLF)(record)
-			default:
-				cmd.DisplayError(errors.New("unknown line ending"))
-			}
+			encoder = (*recioutil.Line)(record)
 		}
 
-		_, err = bufferedWriter.Write(encoder)
+		_, err = writer.Write(encoder)
 		if err != nil {
 			cmd.DisplayError(err)
 		}
