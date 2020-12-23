@@ -19,7 +19,7 @@ import (
 
 const (
 	writeBufferSize = 1 << 20 // 1MB
-	readBufferSize = 1 << 20 // 1MB
+	readBufferSize  = 1 << 20 // 1MB
 )
 
 type RecordsWriterHandler func(w recio.Writer) (err error)
@@ -249,7 +249,7 @@ func (c *Client) WriteRecordsBatch(logName string, bufferSize int, fn RecordsWri
 
 	pipeReader, pipeWriter := io.Pipe()
 
-		bufferedWriter := recio.NewBufferedWriter(pipeWriter, bufferSize, recio.ModeAuto)
+	bufferedWriter := recio.NewBufferedWriter(pipeWriter, bufferSize, recio.ModeAuto)
 
 	endpoint := c.baseURL + "/logs/" + logName + "/records"
 
@@ -402,7 +402,7 @@ func (c *Client) ReadRecordsTCP(name string, params api.ReadRecordsTCPParams, fl
 
 	err = encoder.Encode(params, queryParams)
 	if err != nil {
-		return nil,  err
+		return nil, err
 	}
 
 	url := c.baseURL + "/logs/" + name + "/records?" + queryParams.Encode()
@@ -462,4 +462,3 @@ func (c *Client) ReadRecordsTCP(name string, params api.ReadRecordsTCPParams, fl
 
 	return tr, nil
 }
-

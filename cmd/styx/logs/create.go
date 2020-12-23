@@ -73,14 +73,14 @@ func CreateLog(args []string) {
 
 	name := createOpts.Args()[0]
 	config := api.LogConfig{
-		MaxRecordSize: *maxRecordSize,
+		MaxRecordSize:   *maxRecordSize,
 		IndexAfterSize:  *indexAfterSize,
 		SegmentMaxCount: *segmentMaxCount,
 		SegmentMaxSize:  *segmentMaxSize,
-		SegmentMaxAge: *segmentMaxAge,
-		LogMaxCount: *logMaxCount,
-		LogMaxSize: *logMaxSize,
-		LogMaxAge: *logMaxAge,
+		SegmentMaxAge:   *segmentMaxAge,
+		LogMaxCount:     *logMaxCount,
+		LogMaxSize:      *logMaxSize,
+		LogMaxAge:       *logMaxAge,
 	}
 
 	log, err := httpClient.CreateLog(name, config)

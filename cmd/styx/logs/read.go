@@ -11,7 +11,6 @@ import (
 	"gitlab.com/dataptive/styx/log"
 	"gitlab.com/dataptive/styx/recio"
 	"gitlab.com/dataptive/styx/recio/recioutil"
-	// "gitlab.com/dataptive/styx/util"
 
 	"github.com/spf13/pflag"
 )

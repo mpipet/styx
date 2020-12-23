@@ -51,8 +51,8 @@ func main() {
 	logsLevels := map[string]int{
 		"TRACE": logger.LevelTrace,
 		"DEBUG": logger.LevelDebug,
-		"INFO": logger.LevelInfo,
-		"WARN": logger.LevelWarn,
+		"INFO":  logger.LevelInfo,
+		"WARN":  logger.LevelWarn,
 		"ERROR": logger.LevelError,
 		"FATAL": logger.LevelFatal,
 	}

@@ -2,10 +2,10 @@ package logs_routes
 
 import (
 	"io"
+	"mime"
 	"net/http"
 	"strconv"
 	"time"
-	"mime"
 
 	"gitlab.com/dataptive/styx/api"
 	"gitlab.com/dataptive/styx/log"

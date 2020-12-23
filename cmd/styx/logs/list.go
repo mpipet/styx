@@ -58,7 +58,7 @@ func ListLogs(args []string) {
 			cmd.DisplayError(err)
 		}
 
-		if *watch{
+		if *watch {
 			// Clear terminal
 			fmt.Printf("\033[H\033[2J")
 		}
