@@ -1,6 +1,7 @@
 package logs
 
 import (
+	"errors"
 	"io"
 	"os"
 
@@ -21,6 +22,7 @@ Write to log, input is expected to be line delimited record payloads
 Options:
 	--unbuffered	Do not buffer writes
 	--binary	Process input as binary records
+	--line-ending   Line end [cr|lf|crlf] for non binary record output
 
 Global Options:
 	--host string 	Server to connect to (default "http://localhost:8000")
@@ -38,6 +40,7 @@ func WriteLog(args []string) {
 	writeOpts := pflag.NewFlagSet("logs write", pflag.ContinueOnError)
 	unbuffered := writeOpts.Bool("unbuffered", false, "")
 	binary := writeOpts.Bool("binary", false, "")
+	lineEnding := writeOpts.String("line-ending", "lf", "")
 	host := writeOpts.String("host", "http://localhost:8000", "")
 	isHelp := writeOpts.Bool("help", false, "")
 	writeOpts.Usage = func() {
@@ -70,7 +73,16 @@ func WriteLog(args []string) {
 	if *binary {
 		decoder = &log.Record{}
 	} else {
-		decoder = &recioutil.Line{}
+		switch(*lineEnding) {
+		case "cr":
+			decoder = &recioutil.LineCR{}
+		case "lf":
+			decoder = &recioutil.LineLF{}
+		case "crlf":
+			decoder = &recioutil.LineCRLF{}
+		default:
+			cmd.DisplayError(errors.New("unknown line ending"))
+		}
 	}
 
 	isTerm, err := cmd.IsTerminal(os.Stdin)
@@ -96,7 +108,14 @@ func WriteLog(args []string) {
 			record = decoder.(*log.Record)
 		} else {
 			// Convert line as decoder interface to record
-			record = (*log.Record)(decoder.(*recioutil.Line))
+			switch(*lineEnding) {
+			case "cr":
+				record = (*log.Record)(decoder.(*recioutil.LineCR))
+			case "lf":
+				record = (*log.Record)(decoder.(*recioutil.LineLF))
+			case "crlf":
+				record = (*log.Record)(decoder.(*recioutil.LineCRLF))
+			}
 		}
 
 		_, err = tcpWriter.Write(record)

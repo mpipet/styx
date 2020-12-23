@@ -1,6 +1,7 @@
 package logs
 
 import (
+	"errors"
 	"io"
 	"os"
 
@@ -27,6 +28,7 @@ Options:
 	--follow 		Wait for new records when reaching end of stream
 	--unbuffered		Do not buffer read
 	--binary		Output binary records
+	--line-ending   	Line end [cr|lf|crlf] for non binary record output
 
 Global Options:
 	--host string 		Server to connect to (default "http://localhost:8000")
@@ -48,6 +50,7 @@ func ReadLog(args []string) {
 	follow := readOpts.Bool("follow", false, "")
 	unbuffered := readOpts.Bool("unbuffered", false, "")
 	binary := readOpts.Bool("binary", false, "")
+	lineEnding := readOpts.String("line-ending", "lf", "")
 	host := readOpts.String("host", "http://localhost:8000", "")
 	isHelp := readOpts.Bool("help", false, "")
 	readOpts.Usage = func() {
@@ -106,10 +109,17 @@ func ReadLog(args []string) {
 		if *binary {
 			encoder = record
 		} else {
-			encoder = (*recioutil.Line)(record)
-			// line, isLine := (*log.Record)(decoder.(*recioutil.Line))
-			// record = (*log.Record)(decoder.(*recioutil.Line))
-			// record = (*log.Record)(line)
+			encoder = (*recioutil.LineLF)(record)
+			switch(*lineEnding) {
+			case "cr":
+				encoder = (*recioutil.LineCR)(record)
+			case "lf":
+				encoder = (*recioutil.LineLF)(record)
+			case "crlf":
+				encoder = (*recioutil.LineCRLF)(record)
+			default:
+				cmd.DisplayError(errors.New("unknown line ending"))
+			}
 		}
 
 		_, err = bufferedWriter.Write(encoder)
