@@ -29,9 +29,9 @@ type TOMLLogManagerConfig struct {
 }
 
 type TOMLNodeManagerConfig struct {
-	NodeName       string `toml:"node_name"`
-	StateDirectory string `toml:"state_directory"`
-	RaftAddress    string `toml:"raft_address"`
+	NodeName         string `toml:"node_name"`
+	RaftDirectory    string `toml:"raft_directory"`
+	AdvertiseAddress string `toml:"advertise_address"`
 }
 
 type Config struct {
@@ -57,6 +57,10 @@ func Load(path string) (c Config, err error) {
 	_, err = toml.DecodeFile(path, tc)
 	if err != nil {
 		return c, err
+	}
+
+	if tc.NodeManager.AdvertiseAddress == "" {
+		tc.NodeManager.AdvertiseAddress = tc.BindAddress
 	}
 
 	c.PIDFile = tc.PIDFile

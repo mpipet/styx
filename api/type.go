@@ -134,7 +134,14 @@ type ListNodesResponse []Node
 
 type Node struct {
 	Name string `json:"name"`
-	State string `json:"state"`
+	Leader bool `json:"leader"`
 	Suffrage string `json:"suffrage"`
 	Address string `json:"address"`
 }
+
+type AddNodeForm struct {
+	Name string `schema:"name,required"`
+	Address string `schema:"address,required"`
+	Voter bool `schema:"voter"`
+}
+

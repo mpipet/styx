@@ -1,8 +1,12 @@
+//
+// TODO:
+// - Déplacement des fonctions d'upgrade dans un package commun (api ?)
+//
 package nodeman
 
 import (
+	"errors"
 	"net"
-	"os"
 	"path/filepath"
 	"time"
 
@@ -13,11 +17,35 @@ import (
 )
 
 const (
-	dirPerm = 0744
-	maxPool = 3
-	timeout = 10 * time.Second
-	retain  = 1
+	HashicorpRaftProtocolString = "hashicorp-raft/3"
 )
+
+const (
+	transportMaxPool  = 3
+	transportTimeout  = 10 * time.Second
+	snapshotsRetained = 1
+
+	// See https://godoc.org/github.com/hashicorp/raft#Config
+	heartbeatTimeout   = 1000 * time.Millisecond
+	electionTimeout    = 1000 * time.Millisecond
+	commitTimeout      = 50 * time.Millisecond
+	maxAppendEntries   = 64
+	trailingLogs       = 10240
+	snapshotInterval   = 120 * time.Second
+	snapshotThreshold  = 8192
+	leaderLeaseTimeout = 500 * time.Millisecond
+)
+
+var (
+	ErrNotLeader = errors.New("nodeman: not a leader")
+)
+
+type Node struct {
+	Name     raft.ServerID
+	Leader   bool
+	Suffrage raft.ServerSuffrage
+	Address  raft.ServerAddress
+}
 
 type NodeManager struct {
 	config        Config
@@ -26,49 +54,48 @@ type NodeManager struct {
 	stableStore   raft.StableStore
 	snapshotStore raft.SnapshotStore
 	transport     *raft.NetworkTransport
+	raftStream    *streamLayer
 	fsm           *FSM
 	raftNode      *raft.Raft
 }
 
 func NewNodeManager(config Config) (nm *NodeManager, err error) {
 
-	logger.Debugf("nodeman: starting node manager (node_name=%s, state_directory=%s, raft_address=%s)", config.NodeName, config.StateDirectory, config.RaftAddress)
-
-	_, err = os.Stat(config.StateDirectory)
-	if err != nil {
-		if !os.IsNotExist(err) {
-			return nil, err
-		}
-
-		err = os.Mkdir(config.StateDirectory, os.FileMode(dirPerm))
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	raftAddr, err := net.ResolveTCPAddr("tcp", config.RaftAddress)
-	if err != nil {
-		return nil, err
-	}
+	logger.Debugf("nodeman: starting node manager (node_name=%s, raft_directory=%s, advertise_address=%s)", config.NodeName, config.RaftDirectory, config.AdvertiseAddress)
 
 	hcLogger := newHCLogger()
 
 	raftConfig := raft.DefaultConfig()
+	raftConfig.HeartbeatTimeout = heartbeatTimeout
+	raftConfig.ElectionTimeout = electionTimeout
+	raftConfig.CommitTimeout = commitTimeout
+	raftConfig.MaxAppendEntries = maxAppendEntries
+	raftConfig.TrailingLogs = trailingLogs
+	raftConfig.SnapshotInterval = snapshotInterval
+	raftConfig.SnapshotThreshold = snapshotThreshold
+	raftConfig.LeaderLeaseTimeout = leaderLeaseTimeout
+
 	raftConfig.LocalID = raft.ServerID(config.NodeName)
 	raftConfig.Logger = hcLogger
-	raftConfig.ShutdownOnRemove = false
 
-	boltStore, err := raftboltdb.NewBoltStore(filepath.Join(config.StateDirectory, "raft.db"))
+	boltStore, err := raftboltdb.NewBoltStore(filepath.Join(config.RaftDirectory, "raft.db"))
 	if err != nil {
 		return nil, err
 	}
 
-	snapshotStore, err := raft.NewFileSnapshotStoreWithLogger(config.StateDirectory, retain, hcLogger)
+	snapshotStore, err := raft.NewFileSnapshotStoreWithLogger(config.RaftDirectory, snapshotsRetained, hcLogger)
 	if err != nil {
 		return nil, err
 	}
 
-	transport, err := raft.NewTCPTransportWithLogger(raftAddr.String(), raftAddr, maxPool, timeout, hcLogger)
+	advertiseAddr, err := net.ResolveTCPAddr("tcp", config.AdvertiseAddress)
+	if err != nil {
+		return nil, err
+	}
+
+	raftStream := newStreamLayer(advertiseAddr)
+
+	transport := raft.NewNetworkTransport(raftStream, transportMaxPool, transportTimeout, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -87,6 +114,7 @@ func NewNodeManager(config Config) (nm *NodeManager, err error) {
 		stableStore:   boltStore,
 		snapshotStore: snapshotStore,
 		transport:     transport,
+		raftStream:    raftStream,
 		fsm:           fsm,
 		raftNode:      raftNode,
 	}
@@ -114,12 +142,22 @@ func (nm *NodeManager) Close() (err error) {
 		return err
 	}
 
-	err = os.RemoveAll(nm.config.StateDirectory)
-	if err != nil {
-		return err
-	}
-
 	return nil
+}
+
+func (nm *NodeManager) AcceptHandler(conn net.Conn) {
+
+	nm.raftStream.acceptHandler(conn)
+}
+
+func (nm *NodeManager) IsLeader() (is bool) {
+
+	return nm.raftNode.State() == raft.Leader
+}
+
+func (nm *NodeManager) Leader() (leader raft.ServerAddress) {
+
+	return nm.raftNode.Leader()
 }
 
 func (nm *NodeManager) Bootstrap() (err error) {
@@ -134,7 +172,6 @@ func (nm *NodeManager) Bootstrap() (err error) {
 	}
 
 	future := nm.raftNode.BootstrapCluster(configuration)
-
 	err = future.Error()
 	if err != nil {
 		return err
@@ -146,29 +183,27 @@ func (nm *NodeManager) Bootstrap() (err error) {
 func (nm *NodeManager) ListNodes() (nodes []Node, err error) {
 
 	future := nm.raftNode.GetConfiguration()
-
 	err = future.Error()
 	if err != nil {
 		return nil, err
 	}
 
 	configuration := future.Configuration()
-
-	leader := nm.raftNode.Leader()
+	leaderAddr := nm.raftNode.Leader()
 
 	for _, server := range configuration.Servers {
 
-		var state raft.RaftState
+		var leader bool
 
-		if server.Address == leader {
-			state = raft.Leader
+		if server.Address == leaderAddr {
+			leader = true
 		} else {
-			state = raft.Follower
+			leader = false
 		}
 
 		node := Node{
 			Name:     server.ID,
-			State:    state,
+			Leader:   leader,
 			Suffrage: server.Suffrage,
 			Address:  server.Address,
 		}
@@ -177,4 +212,42 @@ func (nm *NodeManager) ListNodes() (nodes []Node, err error) {
 	}
 
 	return nodes, nil
+}
+
+func (nm *NodeManager) AddNode(nodeName raft.ServerID, nodeAddr raft.ServerAddress, voter bool) (err error) {
+
+	if nm.raftNode.State() != raft.Leader {
+		return ErrNotLeader
+	}
+
+	if voter {
+		future := nm.raftNode.AddVoter(nodeName, nodeAddr, 0, 0)
+		err = future.Error()
+		if err != nil {
+			return err
+		}
+	} else {
+		future := nm.raftNode.AddNonvoter(nodeName, nodeAddr, 0, 0)
+		err = future.Error()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (nm *NodeManager) RemoveNode(nodeName raft.ServerID) (err error) {
+
+	if nm.raftNode.State() != raft.Leader {
+		return ErrNotLeader
+	}
+
+	future := nm.raftNode.RemoveServer(nodeName, 0, 0)
+	err = future.Error()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

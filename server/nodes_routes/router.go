@@ -1,6 +1,7 @@
 package nodes_routes
 
 import (
+	"fmt"
 	"net/http"
 
 	"gitlab.com/dataptive/styx/api"
@@ -32,8 +33,18 @@ func RegisterRoutes(router *mux.Router, nodeManager *nodeman.NodeManager, config
 		schemaDecoder: decoder,
 	}
 
+	router.HandleFunc("", nr.RaftHandler).
+		Methods(http.MethodGet).
+		Headers("Upgrade", nodeman.HashicorpRaftProtocolString)
+
 	router.HandleFunc("", nr.ListHandler).
 		Methods(http.MethodGet)
+
+	router.HandleFunc("", nr.AddNodeHandler).
+		Methods(http.MethodPost)
+
+	router.HandleFunc("/{name}", nr.RemoveNodeHandler).
+		Methods(http.MethodDelete)
 
 	router.HandleFunc("/bootstrap", nr.BootstrapHandler).
 		Methods(http.MethodPost)
@@ -44,6 +55,81 @@ func RegisterRoutes(router *mux.Router, nodeManager *nodeman.NodeManager, config
 func (nr *NodesRouter) BootstrapHandler(w http.ResponseWriter, r *http.Request) {
 
 	err := nr.nodeManager.Bootstrap()
+	if err != nil {
+		api.WriteError(w, http.StatusInternalServerError, api.ErrUnknownError)
+		logger.Debug(err)
+		return
+	}
+
+	api.WriteResponse(w, http.StatusOK, nil)
+}
+
+func (nr *NodesRouter) AddNodeHandler(w http.ResponseWriter, r *http.Request) {
+
+	if !nr.nodeManager.IsLeader() {
+		leader := string(nr.nodeManager.Leader())
+		location := fmt.Sprintf("http://%s/nodes", leader)
+		http.Redirect(w, r, location, http.StatusTemporaryRedirect)
+		return
+	}
+
+	form := api.AddNodeForm{
+		Voter: true,
+	}
+
+	err := r.ParseForm()
+	if err != nil {
+		api.WriteError(w, http.StatusBadRequest, api.ErrUnknownError)
+		logger.Debug(err)
+		return
+	}
+
+	err = nr.schemaDecoder.Decode(&form, r.PostForm)
+	if err != nil {
+		er := api.NewParamsError(err)
+		api.WriteError(w, http.StatusBadRequest, er)
+		logger.Debug(err)
+		return
+	}
+
+	nodeName := raft.ServerID(form.Name)
+	nodeAddr := raft.ServerAddress(form.Address)
+	voter := form.Voter
+
+	err = nr.nodeManager.AddNode(nodeName, nodeAddr, voter)
+
+	if err == nodeman.ErrNotLeader {
+		leaderAddr := string(nr.nodeManager.Leader())
+		location := fmt.Sprintf("http://%s/nodes", leaderAddr)
+		http.Redirect(w, r, location, http.StatusTemporaryRedirect)
+		return
+	}
+
+	if err != nil {
+		api.WriteError(w, http.StatusInternalServerError, api.ErrUnknownError)
+		logger.Debug(err)
+		return
+	}
+
+	api.WriteResponse(w, http.StatusOK, nil)
+}
+
+func (nr *NodesRouter) RemoveNodeHandler(w http.ResponseWriter, r *http.Request) {
+
+	vars := mux.Vars(r)
+	name := vars["name"]
+
+	nodeName := raft.ServerID(name)
+
+	err := nr.nodeManager.RemoveNode(nodeName)
+
+	if err == nodeman.ErrNotLeader {
+		leaderAddr := string(nr.nodeManager.Leader())
+		location := fmt.Sprintf("http://%s/nodes/%s", leaderAddr, name)
+		http.Redirect(w, r, location, http.StatusTemporaryRedirect)
+		return
+	}
+
 	if err != nil {
 		api.WriteError(w, http.StatusInternalServerError, api.ErrUnknownError)
 		logger.Debug(err)
@@ -66,14 +152,7 @@ func (nr *NodesRouter) ListHandler(w http.ResponseWriter, r *http.Request) {
 
 	for _, rn := range raftNodes {
 
-		var state string
 		var suffrage string
-
-		if rn.State == raft.Leader {
-			state = "leader"
-		} else {
-			state = "follower"
-		}
 
 		switch rn.Suffrage {
 		case raft.Voter:
@@ -86,7 +165,7 @@ func (nr *NodesRouter) ListHandler(w http.ResponseWriter, r *http.Request) {
 
 		node := api.Node{
 			Name:     string(rn.Name),
-			State:    state,
+			Leader:   rn.Leader,
 			Suffrage: suffrage,
 			Address:  string(rn.Address),
 		}
@@ -95,4 +174,15 @@ func (nr *NodesRouter) ListHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	api.WriteResponse(w, http.StatusOK, entries)
+}
+
+func (nr *NodesRouter) RaftHandler(w http.ResponseWriter, r *http.Request) {
+
+	conn, err := UpgradeTCP(w)
+	if err != nil {
+		logger.Debug(err)
+		return
+	}
+
+	nr.nodeManager.AcceptHandler(conn)
 }
