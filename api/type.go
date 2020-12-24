@@ -8,9 +8,11 @@ import (
 )
 
 const (
-	TimeoutHeaderName     = "X-Connection-Timeout"
-	RecordLinesMediaType  = "application/x.styx-record-lines"
-	RecordBinaryMediaType = "application/x.styx-record-binary"
+	TimeoutHeaderName     = "X-Styx-Timeout"
+	RecordLinesMediaType  = "application/ld+text"
+	RecordBinaryMediaType = "application/vnd.styx-records"
+	RaftProtocolString    = "hashicorp-raft/3"
+	StyxProtocolString    = "styx/0"
 )
 
 var (

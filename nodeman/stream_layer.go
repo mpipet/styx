@@ -9,6 +9,8 @@ import (
 	"net/url"
 	"time"
 
+	"gitlab.com/dataptive/styx/api"
+
 	"github.com/hashicorp/raft"
 )
 
@@ -87,7 +89,7 @@ func (sl *streamLayer) Dial(address raft.ServerAddress, timeout time.Duration) (
 		Header:     make(http.Header),
 	}
 
-	req.Header.Set("Upgrade", HashicorpRaftProtocolString)
+	req.Header.Set("Upgrade", api.RaftProtocolString)
 
 	err = req.Write(conn)
 	if err != nil {

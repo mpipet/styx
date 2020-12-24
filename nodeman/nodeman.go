@@ -19,10 +19,6 @@ import (
 )
 
 const (
-	HashicorpRaftProtocolString = "hashicorp-raft/3"
-)
-
-const (
 	transportMaxPool  = 3
 	transportTimeout  = 10 * time.Second
 	snapshotsRetained = 1

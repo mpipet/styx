@@ -345,7 +345,7 @@ func (c *Client) WriteRecordsTCP(logName string, flag recio.IOMode, writeBufferS
 	}
 
 	req.Header.Add("Connection", "upgrade")
-	req.Header.Add("Upgrade", "tcp")
+	req.Header.Add("Upgrade", api.StyxProtocolString)
 	req.Header.Add(api.TimeoutHeaderName, strconv.Itoa(timeout))
 
 	var tcpConn *net.TCPConn
@@ -413,7 +413,7 @@ func (c *Client) ReadRecordsTCP(name string, params api.ReadRecordsTCPParams, fl
 	}
 
 	req.Header.Add("Connection", "upgrade")
-	req.Header.Add("Upgrade", "tcp")
+	req.Header.Add("Upgrade", api.StyxProtocolString)
 	req.Header.Add(api.TimeoutHeaderName, strconv.Itoa(timeout))
 
 	var tcpConn *net.TCPConn

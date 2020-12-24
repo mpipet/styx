@@ -3,6 +3,7 @@ package nodes_routes
 import (
 	"net/http"
 
+	"gitlab.com/dataptive/styx/api"
 	"gitlab.com/dataptive/styx/nodeman"
 	"gitlab.com/dataptive/styx/server/config"
 
@@ -31,7 +32,7 @@ func RegisterRoutes(router *mux.Router, nodeManager *nodeman.NodeManager, config
 
 	router.HandleFunc("", nr.RaftHandler).
 		Methods(http.MethodGet).
-		Headers("Upgrade", nodeman.HashicorpRaftProtocolString)
+		Headers("Upgrade", api.RaftProtocolString)
 
 	router.HandleFunc("", nr.ListHandler).
 		Methods(http.MethodGet)

@@ -23,7 +23,7 @@ func UpgradeTCP(w http.ResponseWriter) (c *net.TCPConn, err error) {
 	}
 	header := w.Header()
 	header.Add("Connection", "Upgrade")
-	header.Add("Upgrade", "tcp")
+	header.Add("Upgrade", api.StyxProtocolString)
 
 	api.WriteResponse(w, http.StatusSwitchingProtocols, nil)
 

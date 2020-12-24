@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"gitlab.com/dataptive/styx/api"
-	"gitlab.com/dataptive/styx/nodeman"
 )
 
 var (
@@ -24,7 +23,7 @@ func UpgradeTCP(w http.ResponseWriter) (c *net.TCPConn, err error) {
 	}
 	header := w.Header()
 	header.Add("Connection", "Upgrade")
-	header.Add("Upgrade", nodeman.HashicorpRaftProtocolString)
+	header.Add("Upgrade", api.RaftProtocolString)
 
 	api.WriteResponse(w, http.StatusSwitchingProtocols, nil)
 
