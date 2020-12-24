@@ -1,6 +1,7 @@
 package logs
 
 import (
+	"errors"
 	"io"
 	"os"
 
@@ -21,6 +22,7 @@ Write to log, input is expected to be line delimited record payloads
 Options:
 	--unbuffered	Do not buffer writes
 	--binary	Process input as binary records
+	--line-ending   Line end [cr|lf|crlf] for non binary record output
 
 Global Options:
 	--host string 	Server to connect to (default "http://localhost:8000")
@@ -30,14 +32,15 @@ Global Options:
 func WriteLog(args []string) {
 
 	const (
-		readBufferSize = 1 << 20 // 1MB
+		readBufferSize  = 1 << 20 // 1MB
 		writeBufferSize = 1 << 20 // 1MB
-		timeout = 100
+		timeout         = 100
 	)
 
 	writeOpts := pflag.NewFlagSet("logs write", pflag.ContinueOnError)
 	unbuffered := writeOpts.Bool("unbuffered", false, "")
 	binary := writeOpts.Bool("binary", false, "")
+	lineEnding := writeOpts.String("line-ending", "lf", "")
 	host := writeOpts.String("host", "http://localhost:8000", "")
 	isHelp := writeOpts.Bool("help", false, "")
 	writeOpts.Usage = func() {
@@ -64,13 +67,22 @@ func WriteLog(args []string) {
 		cmd.DisplayError(err)
 	}
 
-	reader := recio.NewBufferedReader(os.Stdin, readBufferSize, recio.ModeAuto)
-
+	var reader recio.Reader
 	var decoder recio.Decoder
-	if *binary {
-		decoder = &log.Record{}
-	} else {
+
+	bufferedReader := recio.NewBufferedReader(os.Stdin, readBufferSize, recio.ModeAuto)
+	reader = bufferedReader
+
+	if !*binary {
+		var delimiter []byte
 		decoder = &recioutil.Line{}
+
+		delimiter, valid := recioutil.LineEndings[*lineEnding]
+		if !valid {
+			cmd.DisplayError(errors.New("unknown line ending"))
+		}
+
+		reader = recioutil.NewLineReader(bufferedReader, delimiter)
 	}
 
 	isTerm, err := cmd.IsTerminal(os.Stdin)
@@ -91,11 +103,10 @@ func WriteLog(args []string) {
 			cmd.DisplayError(err)
 		}
 
+		// Convert decoder to record
 		if *binary {
-			// Convert back record as decoder to record
 			record = decoder.(*log.Record)
 		} else {
-			// Convert line as decoder interface to record
 			record = (*log.Record)(decoder.(*recioutil.Line))
 		}
 

@@ -90,4 +90,3 @@ func main() {
 		cmd.DisplayUsage(cmd.MisuseCode, cliUsage)
 	}
 }
-

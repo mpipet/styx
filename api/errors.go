@@ -62,3 +62,8 @@ func NewParamsError(err error) (e *ParamsError) {
 
 	return e
 }
+
+func (e *ParamsError) Error() (m string) {
+
+	return e.Message
+}

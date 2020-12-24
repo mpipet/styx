@@ -2,30 +2,56 @@ package logs_routes
 
 import (
 	"io"
+	"mime"
 	"net/http"
 	"strconv"
 	"time"
 
 	"gitlab.com/dataptive/styx/api"
-	"gitlab.com/dataptive/styx/clock"
 	"gitlab.com/dataptive/styx/log"
 	"gitlab.com/dataptive/styx/logger"
 	"gitlab.com/dataptive/styx/logman"
 	"gitlab.com/dataptive/styx/recio"
+	"gitlab.com/dataptive/styx/recio/recioutil"
 
 	"github.com/gorilla/mux"
 )
 
-var (
-	now = clock.New(time.Second)
-)
+func (lr *LogsRouter) ReadLinesMatcher(r *http.Request, rm *mux.RouteMatch) (match bool) {
 
-func (lr *LogsRouter) ReadBatchHandler(w http.ResponseWriter, r *http.Request) {
+	accept := r.Header.Get("Accept")
+	mediaType, _, _ := mime.ParseMediaType(accept)
+
+	match = mediaType == api.RecordLinesMediaType
+
+	return match
+}
+
+func (lr *LogsRouter) ReadLinesHandler(w http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
 	name := vars["name"]
 
-	params := api.ReadRecordsBatchParams{
+	accept := r.Header.Get("Accept")
+	_, typeParams, err := mime.ParseMediaType(accept)
+	if err != nil {
+		api.WriteError(w, http.StatusBadRequest, api.ErrUnknownError)
+		logger.Debug(err)
+		return
+	}
+
+	if typeParams["line-ending"] == "" {
+		typeParams["line-ending"] = "lf"
+	}
+
+	delimiter, valid := recioutil.LineEndings[typeParams["line-ending"]]
+	if !valid {
+		api.WriteError(w, http.StatusBadRequest, api.ErrUnknownError)
+		logger.Debug(err)
+		return
+	}
+
+	params := api.ReadRecordsLinesParams{
 		Whence:   log.SeekOrigin,
 		Position: 0,
 		Count:    100,
@@ -33,7 +59,7 @@ func (lr *LogsRouter) ReadBatchHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	query := r.URL.Query()
 
-	err := lr.schemaDecoder.Decode(&params, query)
+	err = lr.schemaDecoder.Decode(&params, query)
 	if err != nil {
 		er := api.NewParamsError(err)
 		api.WriteError(w, http.StatusBadRequest, er)
@@ -84,6 +110,7 @@ func (lr *LogsRouter) ReadBatchHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	bufferedWriter := recio.NewBufferedWriter(w, lr.config.HTTPWriteBufferSize, recio.ModeAuto)
+	lineWriter := recioutil.NewLineWriter(bufferedWriter, delimiter)
 
 	logReader, err := managedLog.NewReader(lr.config.HTTPReadBufferSize, params.Longpoll, recio.ModeManual)
 	if err == logman.ErrUnavailable {
@@ -106,12 +133,13 @@ func (lr *LogsRouter) ReadBatchHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", api.RecordBinaryMediaType)
+	mediaType := mime.FormatMediaType(api.RecordLinesMediaType, typeParams)
+	w.Header().Set("Content-Type", mediaType)
 	w.WriteHeader(http.StatusOK)
 
 	fillTimeout := time.Duration(timeout) * time.Second
 
-	err = readBatch(bufferedWriter, logReader, params.Count, params.Longpoll, fillTimeout)
+	err = readLines(lineWriter, bufferedWriter, logReader, params.Count, params.Longpoll, fillTimeout)
 	if err != nil {
 		logger.Debug(err)
 		logReader.Close()
@@ -124,17 +152,17 @@ func (lr *LogsRouter) ReadBatchHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func readBatch(bw *recio.BufferedWriter, lr *log.LogReader, limit int64, longPoll bool, timeout time.Duration) (err error) {
+func readLines(lw *recioutil.LineWriter, bw *recio.BufferedWriter, lr *log.LogReader, limit int64, longPoll bool, timeout time.Duration) (err error) {
 
 	count := int64(0)
-	record := log.Record{}
+	record := &log.Record{}
 
 	for {
 		if count == limit {
 			break
 		}
 
-		_, err := lr.Read(&record)
+		_, err := lr.Read(record)
 		if err == io.EOF {
 			break
 		}
@@ -165,7 +193,7 @@ func readBatch(bw *recio.BufferedWriter, lr *log.LogReader, limit int64, longPol
 			return err
 		}
 
-		_, err = bw.Write(&record)
+		_, err = lw.Write((*recioutil.Line)(record))
 		if err != nil {
 			return err
 		}

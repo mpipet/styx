@@ -8,7 +8,9 @@ import (
 )
 
 const (
-	TimeoutHeaderName = "X-Connection-Timeout"
+	TimeoutHeaderName     = "X-Connection-Timeout"
+	RecordLinesMediaType  = "application/x.styx-record-lines"
+	RecordBinaryMediaType = "application/x.styx-record-binary"
 )
 
 var (
@@ -16,12 +18,12 @@ var (
 )
 
 type LogInfo struct {
-	Name          string            `json:"name"`
-	Status        logman.LogStatus  `json:"status"`
-	RecordCount   int64             `json:"record_count"`
-	FileSize      int64             `json:"file_size"`
-	StartPosition int64             `json:"start_position"`
-	EndPosition   int64             `json:"end_position"`
+	Name          string           `json:"name"`
+	Status        logman.LogStatus `json:"status"`
+	RecordCount   int64            `json:"record_count"`
+	FileSize      int64            `json:"file_size"`
+	StartPosition int64            `json:"start_position"`
+	EndPosition   int64            `json:"end_position"`
 }
 
 type LogConfig struct {
@@ -88,6 +90,20 @@ func (p ReadRecordsBatchParams) Validate() (err error) {
 	return nil
 }
 
+type WriteRecordsLinesResponse WriteRecordResponse
+
+type ReadRecordsLinesParams ReadRecordsBatchParams
+
+func (p ReadRecordsLinesParams) Validate() (err error) {
+	err = validateWhence(p.Whence)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 type ReadRecordsTCPParams struct {
 	Whence   log.Whence `schema:"whence"`
 	Position int64      `schema:"position"`
@@ -133,15 +149,14 @@ func validateWhence(whence log.Whence) (err error) {
 type ListNodesResponse []Node
 
 type Node struct {
-	Name string `json:"name"`
-	Leader bool `json:"leader"`
+	Name     string `json:"name"`
+	Leader   bool   `json:"leader"`
 	Suffrage string `json:"suffrage"`
-	Address string `json:"address"`
+	Address  string `json:"address"`
 }
 
 type AddNodeForm struct {
-	Name string `schema:"name,required"`
+	Name    string `schema:"name,required"`
 	Address string `schema:"address,required"`
-	Voter bool `schema:"voter"`
+	Voter   bool   `schema:"voter"`
 }
-

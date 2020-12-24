@@ -1,6 +1,7 @@
 package logs
 
 import (
+	"errors"
 	"io"
 	"os"
 
@@ -10,7 +11,6 @@ import (
 	"gitlab.com/dataptive/styx/log"
 	"gitlab.com/dataptive/styx/recio"
 	"gitlab.com/dataptive/styx/recio/recioutil"
-	// "gitlab.com/dataptive/styx/util"
 
 	"github.com/spf13/pflag"
 )
@@ -27,6 +27,7 @@ Options:
 	--follow 		Wait for new records when reaching end of stream
 	--unbuffered		Do not buffer read
 	--binary		Output binary records
+	--line-ending   	Line end [cr|lf|crlf] for non binary record output
 
 Global Options:
 	--host string 		Server to connect to (default "http://localhost:8000")
@@ -36,9 +37,9 @@ Global Options:
 func ReadLog(args []string) {
 
 	const (
-		readBufferSize = 1 << 20 // 1MB
+		readBufferSize  = 1 << 20 // 1MB
 		writeBufferSize = 1 << 20 // 1MB
-		timeout = 100
+		timeout         = 100
 	)
 
 	readOpts := pflag.NewFlagSet("read", pflag.ContinueOnError)
@@ -48,6 +49,7 @@ func ReadLog(args []string) {
 	follow := readOpts.Bool("follow", false, "")
 	unbuffered := readOpts.Bool("unbuffered", false, "")
 	binary := readOpts.Bool("binary", false, "")
+	lineEnding := readOpts.String("line-ending", "lf", "")
 	host := readOpts.String("host", "http://localhost:8000", "")
 	isHelp := readOpts.Bool("help", false, "")
 	readOpts.Usage = func() {
@@ -70,10 +72,10 @@ func ReadLog(args []string) {
 	httpClient := client.NewClient(*host)
 
 	params := api.ReadRecordsTCPParams{
-		Whence: log.Whence(*whence),
+		Whence:   log.Whence(*whence),
 		Position: *position,
-		Count: *count,
-		Follow: *follow,
+		Count:    *count,
+		Follow:   *follow,
 	}
 
 	tcpReader, err := httpClient.ReadRecordsTCP(readOpts.Args()[0], params, recio.ModeAuto, readBufferSize, timeout)
@@ -81,7 +83,23 @@ func ReadLog(args []string) {
 		cmd.DisplayError(err)
 	}
 
+	var writer recio.Writer
+	var encoder recio.Encoder
+
 	bufferedWriter := recio.NewBufferedWriter(os.Stdout, writeBufferSize, recio.ModeAuto)
+	writer = bufferedWriter
+
+	if !*binary {
+		var delimiter []byte
+		encoder = &recioutil.Line{}
+
+		delimiter, valid := recioutil.LineEndings[*lineEnding]
+		if !valid {
+			cmd.DisplayError(errors.New("unknown line ending"))
+		}
+
+		writer = recioutil.NewLineWriter(bufferedWriter, delimiter)
+	}
 
 	isTerm, err := cmd.IsTerminal(os.Stdin)
 	if err != nil {
@@ -89,8 +107,6 @@ func ReadLog(args []string) {
 	}
 
 	mustFlush := isTerm || *unbuffered
-
-	var encoder recio.Encoder
 	record := &log.Record{}
 	for {
 		_, err := tcpReader.Read(record)
@@ -102,17 +118,13 @@ func ReadLog(args []string) {
 			cmd.DisplayError(err)
 		}
 
-
 		if *binary {
 			encoder = record
 		} else {
 			encoder = (*recioutil.Line)(record)
-			// line, isLine := (*log.Record)(decoder.(*recioutil.Line))
-			// record = (*log.Record)(decoder.(*recioutil.Line))
-			// record = (*log.Record)(line)
 		}
 
-		_, err = bufferedWriter.Write(encoder)
+		_, err = writer.Write(encoder)
 		if err != nil {
 			cmd.DisplayError(err)
 		}

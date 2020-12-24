@@ -153,7 +153,6 @@ func (tp *TCPPeer) Flush() (err error) {
 
 func (tp *TCPPeer) ReadMessage(m *Message) (n int, err error) {
 
-
 Retry:
 	if tp.closed {
 		return 0, ErrClosed

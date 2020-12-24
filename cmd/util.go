@@ -3,9 +3,9 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 	"text/tabwriter"
 	"text/template"
-	"strings"
 
 	"gitlab.com/dataptive/styx/api"
 )
@@ -14,13 +14,13 @@ type ExitCode int
 
 const (
 	tabMinWidth = 0
-	tabWidth = 8
-	tabPadding = 8
-	tabPadChar = '\t'
+	tabWidth    = 8
+	tabPadding  = 8
+	tabPadChar  = '\t'
 
 	SuccessCode = ExitCode(0)
-	ErrorCode = ExitCode(1)
-	MisuseCode = ExitCode(2)
+	ErrorCode   = ExitCode(1)
+	MisuseCode  = ExitCode(2)
 )
 
 func DisplayUsage(exitCode ExitCode, usage string) {
@@ -75,7 +75,7 @@ func IsTerminal(f *os.File) (value bool, err error) {
 		return false, err
 	}
 
-	value = fi.Mode() & os.ModeCharDevice != 0
+	value = fi.Mode()&os.ModeCharDevice != 0
 
 	return value, nil
 }

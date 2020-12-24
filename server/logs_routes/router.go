@@ -3,6 +3,7 @@ package logs_routes
 import (
 	"net/http"
 
+	"gitlab.com/dataptive/styx/api"
 	"gitlab.com/dataptive/styx/logman"
 	"gitlab.com/dataptive/styx/server/config"
 
@@ -47,12 +48,6 @@ func RegisterRoutes(router *mux.Router, logManager *logman.LogManager, config co
 	router.HandleFunc("/restore", lr.RestoreHandler).
 		Methods(http.MethodPost)
 
-	router.HandleFunc("/{name}/records/batch", lr.WriteBatchHandler).
-		Methods(http.MethodPost)
-
-	router.HandleFunc("/{name}/records/batch", lr.ReadBatchHandler).
-		Methods(http.MethodGet)
-
 	router.HandleFunc("/{name}/records", lr.WriteTCPHandler).
 		Methods(http.MethodPost).
 		Headers("Upgrade", "tcp")
@@ -60,6 +55,22 @@ func RegisterRoutes(router *mux.Router, logManager *logman.LogManager, config co
 	router.HandleFunc("/{name}/records", lr.ReadTCPHandler).
 		Methods(http.MethodGet).
 		Headers("Upgrade", "tcp")
+
+	router.HandleFunc("/{name}/records", lr.WriteLinesHandler).
+		Methods(http.MethodPost).
+		MatcherFunc(lr.WriteLinesMatcher)
+
+	router.HandleFunc("/{name}/records", lr.ReadLinesHandler).
+		Methods(http.MethodGet).
+		MatcherFunc(lr.ReadLinesMatcher)
+
+	router.HandleFunc("/{name}/records", lr.WriteBatchHandler).
+		Methods(http.MethodPost).
+		Headers("Content-Type", api.RecordBinaryMediaType)
+
+	router.HandleFunc("/{name}/records", lr.ReadBatchHandler).
+		Methods(http.MethodGet).
+		Headers("Accept", api.RecordBinaryMediaType)
 
 	router.HandleFunc("/{name}/records", lr.WriteHandler).
 		Methods(http.MethodPost)
