@@ -1,10 +1,12 @@
 //
 // TODO:
 // - Déplacement des fonctions d'upgrade dans un package commun (api ?)
+// - sur les opérations qui requierent un leader, si il n'y en a pas, attendre avec un timeout
 //
 package nodeman
 
 import (
+	"encoding/json"
 	"errors"
 	"net"
 	"path/filepath"
@@ -24,6 +26,7 @@ const (
 	transportMaxPool  = 3
 	transportTimeout  = 10 * time.Second
 	snapshotsRetained = 1
+	applyTimeout = 10 * time.Second
 
 	// See https://godoc.org/github.com/hashicorp/raft#Config
 	heartbeatTimeout   = 1000 * time.Millisecond
@@ -250,4 +253,147 @@ func (nm *NodeManager) RemoveNode(nodeName raft.ServerID) (err error) {
 	}
 
 	return nil
+}
+
+func (nm *NodeManager) GetUnsafe(key string) (value interface{}, err error){
+
+	state := nm.fsm.GetState()
+
+	value, ok := state[key]
+	if !ok {
+		return nil, ErrNotFound
+	}
+
+	return value, nil
+}
+
+func (nm *NodeManager) Get(key string) (value interface{}, err error){
+
+	if nm.raftNode.State() != raft.Leader {
+		return nil, ErrNotLeader
+	}
+
+	command := FSMCommand{
+		Operation: "get",
+		Key: key,
+	}
+
+	data, err := json.Marshal(command)
+	if err != nil {
+		return nil, err
+	}
+
+	future := nm.raftNode.Apply(data, applyTimeout)
+	err = future.Error()
+	if err != nil {
+		return nil, err
+	}
+
+	result := future.Response().(*FSMResult)
+
+	if result.Err != nil {
+		return nil, result.Err
+	}
+
+	return result.Value, nil
+}
+
+func (nm *NodeManager) Set(key string, value interface{}) (err error) {
+
+	if nm.raftNode.State() != raft.Leader {
+		return ErrNotLeader
+	}
+
+	command := FSMCommand{
+		Operation: "set",
+		Key: key,
+		Value: value,
+	}
+
+	data, err := json.Marshal(command)
+	if err != nil {
+		return err
+	}
+
+	future := nm.raftNode.Apply(data, applyTimeout)
+	err = future.Error()
+	if err != nil {
+		return err
+	}
+
+	result := future.Response().(*FSMResult)
+
+	if result.Err != nil {
+		return result.Err
+	}
+
+	return nil
+}
+
+func (nm *NodeManager) Delete(key string) (err error) {
+
+	if nm.raftNode.State() != raft.Leader {
+		return ErrNotLeader
+	}
+
+	command := FSMCommand{
+		Operation: "delete",
+		Key: key,
+	}
+
+	data, err := json.Marshal(command)
+	if err != nil {
+		return err
+	}
+
+	future := nm.raftNode.Apply(data, applyTimeout)
+	err = future.Error()
+	if err != nil {
+		return err
+	}
+
+	result := future.Response().(*FSMResult)
+
+	if result.Err != nil {
+		return result.Err
+	}
+
+	return nil
+}
+
+func (nm *NodeManager) ListUnsafe() (value interface{}, err error){
+
+	state := nm.fsm.GetState()
+
+	return state, nil
+}
+
+func (nm *NodeManager) List() (value interface{}, err error){
+
+	if nm.raftNode.State() != raft.Leader {
+		return nil, ErrNotLeader
+	}
+
+	command := FSMCommand{
+		Operation: "list",
+	}
+
+	data, err := json.Marshal(command)
+	if err != nil {
+		return nil, err
+	}
+
+	future := nm.raftNode.Apply(data, applyTimeout)
+	err = future.Error()
+	if err != nil {
+		return nil, err
+	}
+
+	result := future.Response().(*FSMResult)
+
+	if result.Err != nil {
+		return nil, result.Err
+	}
+
+	return result.Value, nil
 }
