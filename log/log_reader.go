@@ -21,7 +21,7 @@ type LogReader struct {
 	mustWait      bool
 	startPosition int64
 	endPosition   int64
-	notifyChan    chan struct{}
+	notifyChan    chan Stat
 	closed        bool
 	closeLock     sync.Mutex
 	deadline      <-chan time.Time
@@ -45,7 +45,7 @@ func newLogReader(l *Log, bufferSize int, follow bool, ioMode recio.IOMode) (lr 
 		mustWait:      false,
 		startPosition: 0,
 		endPosition:   0,
-		notifyChan:    make(chan struct{}, 1),
+		notifyChan:    make(chan Stat, 1),
 		closed:        false,
 		closeLock:     sync.Mutex{},
 		deadlineTimer: deadlineTimer,
@@ -62,7 +62,7 @@ func newLogReader(l *Log, bufferSize int, follow bool, ioMode recio.IOMode) (lr 
 		lr.mustWait = true
 	}
 
-	lr.log.subscribe(lr.notifyChan)
+	lr.log.Subscribe(lr.notifyChan)
 
 	lr.log.registerReader(lr)
 
@@ -82,7 +82,7 @@ func (lr *LogReader) Close() (err error) {
 
 	lr.log.unregisterReader(lr)
 
-	lr.log.unsubscribe(lr.notifyChan)
+	lr.log.Unsubscribe(lr.notifyChan)
 
 	close(lr.notifyChan)
 

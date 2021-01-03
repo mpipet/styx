@@ -83,7 +83,7 @@ type Log struct {
 	syncedOffset    int64
 	stateLock       sync.RWMutex
 	expirerStop     chan struct{}
-	subscribers     []chan struct{}
+	subscribers     []chan Stat
 	subscribersLock sync.Mutex
 	writeLock       sync.Mutex
 	lockFile        *lockfile.LockFile
@@ -349,7 +349,7 @@ func newLog(path string, config Config, options Options) (l *Log, err error) {
 		syncedOffset:    0,
 		stateLock:       sync.RWMutex{},
 		expirerStop:     make(chan struct{}),
-		subscribers:     []chan struct{}{},
+		subscribers:     []chan Stat{},
 		subscribersLock: sync.Mutex{},
 		writeLock:       sync.Mutex{},
 		lockFile:        nil,
@@ -690,7 +690,7 @@ func (l *Log) Backup(w io.Writer) (err error) {
 	return nil
 }
 
-func (l *Log) subscribe(subscriber chan struct{}) {
+func (l *Log) Subscribe(subscriber chan Stat) {
 
 	l.subscribersLock.Lock()
 	defer l.subscribersLock.Unlock()
@@ -698,7 +698,7 @@ func (l *Log) subscribe(subscriber chan struct{}) {
 	l.subscribers = append(l.subscribers, subscriber)
 }
 
-func (l *Log) unsubscribe(subscriber chan struct{}) {
+func (l *Log) Unsubscribe(subscriber chan Stat) {
 
 	l.subscribersLock.Lock()
 	defer l.subscribersLock.Unlock()
@@ -719,7 +719,7 @@ func (l *Log) unsubscribe(subscriber chan struct{}) {
 	l.subscribers = l.subscribers[:len(l.subscribers)-1]
 }
 
-func (l *Log) notify() {
+func (l *Log) notify(stat Stat) {
 
 	l.subscribersLock.Lock()
 	defer l.subscribersLock.Unlock()
@@ -729,7 +729,7 @@ func (l *Log) notify() {
 		case <-subscriber:
 		default:
 		}
-		subscriber <- struct{}{}
+		subscriber <- stat
 	}
 }
 

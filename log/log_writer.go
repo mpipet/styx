@@ -291,7 +291,17 @@ func (lw *LogWriter) updateSyncProgress(position int64, offset int64) {
 		lw.syncHandler(syncProgress)
 	}
 
-	lw.log.notify()
+	first := lw.log.segmentList[0]
+
+	stat := Stat{
+		StartPosition:  first.basePosition,
+		StartOffset:    first.baseOffset,
+		StartTimestamp: first.baseTimestamp,
+		EndPosition:    lw.log.syncedPosition,
+		EndOffset:      lw.log.syncedOffset,
+	}
+
+	lw.log.notify(stat)
 }
 
 func (lw *LogWriter) enforceMaxCount() (err error) {
