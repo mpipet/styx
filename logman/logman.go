@@ -8,6 +8,7 @@ import (
 
 	"gitlab.com/dataptive/styx/logger"
 	"gitlab.com/dataptive/styx/log"
+	"gitlab.com/dataptive/styx/metrics"
 )
 
 var (
@@ -19,14 +20,16 @@ type LogManager struct {
 	config   Config
 	logs     []*Log
 	logsLock sync.Mutex
+	reporter metrics.Reporter
 }
 
-func NewLogManager(config Config) (lm *LogManager, err error) {
+func NewLogManager(config Config, reporter metrics.Reporter) (lm *LogManager, err error) {
 
 	logger.Debugf("logman: starting log manager (data_directory=%s)", config.DataDirectory)
 
 	lm = &LogManager{
 		config: config,
+		reporter: reporter,
 	}
 
 	names, err := listLogs(lm.config.DataDirectory)
@@ -38,7 +41,7 @@ func NewLogManager(config Config) (lm *LogManager, err error) {
 
 		logger.Debugf("logman: opening log %s", name)
 
-		ml, err := openLog(lm.config.DataDirectory, name, log.DefaultOptions, lm.config.WriteBufferSize)
+		ml, err := openLog(lm.config.DataDirectory, name, log.DefaultOptions, lm.config.WriteBufferSize, lm.reporter)
 		if err != nil {
 			return lm, err
 		}
@@ -89,7 +92,7 @@ func (lm *LogManager) CreateLog(name string, logConfig log.Config) (ml *Log, err
 	lm.logsLock.Lock()
 	defer lm.logsLock.Unlock()
 
-	ml, err = createLog(lm.config.DataDirectory, name, logConfig, log.DefaultOptions, lm.config.WriteBufferSize)
+	ml, err = createLog(lm.config.DataDirectory, name, logConfig, log.DefaultOptions, lm.config.WriteBufferSize, lm.reporter)
 	if err != nil {
 		return nil, err
 	}
@@ -167,7 +170,7 @@ func (lm *LogManager) RestoreLog(name string, r io.Reader) (err error) {
 		return err
 	}
 
-	ml, err := openLog(lm.config.DataDirectory, name, log.DefaultOptions, lm.config.WriteBufferSize)
+	ml, err := openLog(lm.config.DataDirectory, name, log.DefaultOptions, lm.config.WriteBufferSize, lm.reporter)
 	if err != nil {
 		return err
 	}

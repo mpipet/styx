@@ -11,6 +11,7 @@ import (
 	"gitlab.com/dataptive/styx/server/nodes_routes"
 
 	"github.com/gorilla/mux"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/cors"
 )
 
@@ -33,6 +34,8 @@ func NewRouter(logManager *logman.LogManager, nodeManager *nodeman.NodeManager, 
 
 	logs_routes.RegisterRoutes(router.PathPrefix("/logs").Subrouter(), logManager, config)
 	nodes_routes.RegisterRoutes(router.PathPrefix("/nodes").Subrouter(), nodeManager, config)
+
+	router.Handle("/metrics", promhttp.Handler())
 
 	c := cors.New(cors.Options{
 		AllowedOrigins:   r.config.CORSAllowedOrigins,

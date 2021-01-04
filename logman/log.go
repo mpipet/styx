@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"gitlab.com/dataptive/styx/log"
+	"gitlab.com/dataptive/styx/metrics"
 	"gitlab.com/dataptive/styx/recio"
 )
 
@@ -38,6 +39,9 @@ type Log struct {
 	writer           *log.LogWriter
 	fanin            *log.Fanin
 	lock             sync.RWMutex
+	reporter         metrics.Reporter
+	listenerChan	 chan log.Stat
+	listenerClose    chan struct{}
 }
 
 func (ml *Log) NewWriter(ioMode recio.IOMode) (fw *log.FaninWriter, err error) {
@@ -118,7 +122,7 @@ func (ml *Log) Backup(w io.Writer) (err error) {
 	return nil
 }
 
-func createLog(path, name string, config log.Config, options log.Options, writerBufferSize int) (ml *Log, err error) {
+func createLog(path, name string, config log.Config, options log.Options, writerBufferSize int, reporter metrics.Reporter) (ml *Log, err error) {
 
 	ml = &Log{
 		path:             path,
@@ -126,6 +130,9 @@ func createLog(path, name string, config log.Config, options log.Options, writer
 		options:          options,
 		writerBufferSize: writerBufferSize,
 		status:           StatusUnknown,
+		reporter:         reporter,
+		listenerChan:     make(chan log.Stat, 1),
+		listenerClose:    make(chan struct{}),
 	}
 
 	pathname := filepath.Join(path, name)
@@ -145,10 +152,17 @@ func createLog(path, name string, config log.Config, options log.Options, writer
 	ml.writer = writer
 	ml.fanin = log.NewFanin(writer)
 
+	stats := ml.log.Stat()
+	ml.reporter.ReportLogStats(ml.name, stats)
+
+	ml.log.Subscribe(ml.listenerChan)
+
+	go ml.metricsListener()
+
 	return ml, nil
 }
 
-func openLog(path, name string, options log.Options, writerBufferSize int) (ml *Log, err error) {
+func openLog(path, name string, options log.Options, writerBufferSize int, reporter metrics.Reporter) (ml *Log, err error) {
 
 	ml = &Log{
 		path:             path,
@@ -156,6 +170,9 @@ func openLog(path, name string, options log.Options, writerBufferSize int) (ml *
 		options:          options,
 		writerBufferSize: writerBufferSize,
 		status:           StatusUnknown,
+		reporter:         reporter,
+		listenerChan:     make(chan log.Stat, 1),
+		listenerClose:    make(chan struct{}),
 	}
 
 	pathname := filepath.Join(path, name)
@@ -184,6 +201,13 @@ func openLog(path, name string, options log.Options, writerBufferSize int) (ml *
 	ml.writer = writer
 	ml.fanin = log.NewFanin(writer)
 
+	stats := ml.log.Stat()
+	ml.reporter.ReportLogStats(ml.name, stats)
+
+	ml.log.Subscribe(ml.listenerChan)
+
+	go ml.metricsListener()
+
 	return ml, nil
 }
 
@@ -208,7 +232,21 @@ func (ml *Log) close() (err error) {
 		return err
 	}
 
+	ml.log.Unsubscribe(ml.listenerChan)
+	ml.listenerClose <- struct{}{}
+
 	return nil
+}
+
+func (ml *Log) metricsListener() {
+
+	for {
+		select {
+		case <-ml.listenerClose:
+		case stats := <-ml.listenerChan:
+			ml.reporter.ReportLogStats(ml.name, stats)
+		}
+	}
 }
 
 func (ml *Log) scan() {

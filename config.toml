@@ -22,3 +22,10 @@ write_buffer_size = 1048576
 node_name = "node1"
 raft_directory = "./data/nodeNUM/raft"
 # advertise_address = "127.0.0.1:800NUM"
+
+[metrics]
+
+	#[metrics.statsd]
+
+	#address = "127.0.0.1:8125"
+	#prefix = "styx" 

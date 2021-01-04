@@ -14,6 +14,7 @@ import (
 	"gitlab.com/dataptive/styx/logger"
 	"gitlab.com/dataptive/styx/logman"
 	"gitlab.com/dataptive/styx/nodeman"
+	"gitlab.com/dataptive/styx/metrics"
 	"gitlab.com/dataptive/styx/server/config"
 )
 
@@ -58,7 +59,12 @@ func (s *Server) Run() (err error) {
 		}
 	}
 
-	logManager, err := logman.NewLogManager(s.config.LogManager)
+	metricsReporter, err := metrics.NewMetricsReporter(s.config.Metrics)
+	if err != nil {
+		return err
+	}
+
+	logManager, err := logman.NewLogManager(s.config.LogManager, metricsReporter)
 	if err != nil {
 		return err
 	}
@@ -106,6 +112,11 @@ func (s *Server) Run() (err error) {
 		}
 
 		err = logManager.Close()
+		if err != nil {
+			logger.Fatal(err)
+		}
+
+		err = metricsReporter.Close()
 		if err != nil {
 			logger.Fatal(err)
 		}
