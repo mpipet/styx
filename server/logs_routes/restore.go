@@ -5,6 +5,7 @@ import (
 
 	"gitlab.com/dataptive/styx/api"
 	"gitlab.com/dataptive/styx/log"
+	"gitlab.com/dataptive/styx/logman"
 	"gitlab.com/dataptive/styx/logger"
 )
 
