@@ -3,6 +3,7 @@ package logman
 import (
 	"io"
 	"path/filepath"
+	"regexp"
 	"sync"
 
 	"gitlab.com/dataptive/styx/log"
@@ -18,6 +19,10 @@ const (
 	StatusTainted  LogStatus = "tainted"
 	StatusScanning LogStatus = "scanning"
 	StatusUnknown  LogStatus = "unknown"
+)
+
+var (
+	logNameRegexp = regexp.MustCompile(`^[a-zA-Z\d_\-]+$`)
 )
 
 type LogInfo struct {
@@ -124,6 +129,11 @@ func (ml *Log) Backup(w io.Writer) (err error) {
 
 func createLog(path, name string, config log.Config, options log.Options, writerBufferSize int, reporter metrics.Reporter) (ml *Log, err error) {
 
+	valid := logNameRegexp.MatchString(name)
+	if !valid {
+		return nil, ErrInvalidName
+	}
+
 	ml = &Log{
 		path:             path,
 		name:             name,
@@ -163,6 +173,11 @@ func createLog(path, name string, config log.Config, options log.Options, writer
 }
 
 func openLog(path, name string, options log.Options, writerBufferSize int, reporter metrics.Reporter) (ml *Log, err error) {
+
+	valid := logNameRegexp.MatchString(name)
+	if !valid {
+		return nil, ErrInvalidName
+	}
 
 	ml = &Log{
 		path:             path,

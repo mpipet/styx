@@ -12,6 +12,7 @@ var (
 	logExistErrorCode         = "log_exist"
 	logNotFoundErrorCode      = "log_not_found"
 	logNotAvailableErrorCode  = "log_not_available"
+	logInvalidNameCode        = "log_invalid_name"
 	missingLengthErrorCode    = "missing_content_length"
 
 	defaultErrorMessage          = "api: unknown error"
@@ -20,6 +21,7 @@ var (
 	logExistErrorMessage         = "api: log already exists"
 	logNotFoundErrorMessage      = "api: log not found"
 	logNotAvailableErrorMessage  = "api: log not available"
+	logInvalidNameMessage        = "api: log name invalid"
 	missingLengthErrorMessage    = "api: missing content-length"
 
 	ErrUnknownError         = NewError(defaultErrorCode, defaultErrorMessage)
@@ -27,7 +29,8 @@ var (
 	ErrNotFound             = NewError(notFoundErrorCode, notFoundErrorMessage)
 	ErrLogExist             = NewError(logExistErrorCode, logExistErrorMessage)
 	ErrLogNotFound          = NewError(logNotFoundErrorCode, logNotFoundErrorMessage)
-	ErrLogNotAvailable      = NewError(logNotFoundErrorCode, logNotFoundErrorMessage)
+	ErrLogNotAvailable      = NewError(logNotAvailableErrorCode, logNotAvailableErrorMessage)
+	ErrLogInvalidName       = NewError(logInvalidNameCode, logInvalidNameMessage)
 	ErrMissingContentLength = NewError(missingLengthErrorCode, missingLengthErrorMessage)
 )
 

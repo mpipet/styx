@@ -14,6 +14,7 @@ import (
 var (
 	ErrNotExist    = errors.New("log manager: log does not exist")
 	ErrUnavailable = errors.New("log manager: log unavailable")
+	ErrInvalidName = errors.New("log manager: invalid log name")
 )
 
 type LogManager struct {
@@ -126,6 +127,11 @@ func (lm *LogManager) GetLog(name string) (ml *Log, err error) {
 
 func (lm *LogManager) DeleteLog(name string) (err error) {
 
+	valid := logNameRegexp.MatchString(name)
+	if !valid {
+		return ErrInvalidName
+	}
+
 	lm.logsLock.Lock()
 	defer lm.logsLock.Unlock()
 
@@ -162,6 +168,11 @@ func (lm *LogManager) DeleteLog(name string) (err error) {
 }
 
 func (lm *LogManager) RestoreLog(name string, r io.Reader) (err error) {
+
+	valid := logNameRegexp.MatchString(name)
+	if !valid {
+		return ErrInvalidName
+	}
 
 	pathname := filepath.Join(lm.config.DataDirectory, name)
 

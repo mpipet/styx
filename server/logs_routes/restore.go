@@ -28,6 +28,12 @@ func (lr *LogsRouter) RestoreHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err == logman.ErrInvalidName {
+		api.WriteError(w, http.StatusBadRequest, api.ErrLogInvalidName)
+		logger.Debug(err)
+		return
+	}
+
 	if err != nil {
 		api.WriteError(w, http.StatusInternalServerError, api.ErrUnknownError)
 		logger.Debug(err)

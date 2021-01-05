@@ -5,6 +5,7 @@ import (
 
 	"gitlab.com/dataptive/styx/api"
 	"gitlab.com/dataptive/styx/log"
+	"gitlab.com/dataptive/styx/logman"
 	"gitlab.com/dataptive/styx/logger"
 )
 
@@ -35,6 +36,12 @@ func (lr *LogsRouter) CreateHandler(w http.ResponseWriter, r *http.Request) {
 	ml, err := lr.manager.CreateLog(form.Name, config)
 	if err == log.ErrExist {
 		api.WriteError(w, http.StatusBadRequest, api.ErrLogExist)
+		logger.Debug(err)
+		return
+	}
+
+	if err == logman.ErrInvalidName {
+		api.WriteError(w, http.StatusBadRequest, api.ErrLogInvalidName)
 		logger.Debug(err)
 		return
 	}
