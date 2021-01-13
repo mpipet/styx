@@ -622,36 +622,19 @@ func TestLog_TimeoutFollow(t *testing.T) {
 	}
 	defer l.Close()
 
-	lw, err := l.NewWriter(1<<20, recio.ModeAuto)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer lw.Close()
-
 	lr, err := l.NewReader(1<<10, true, recio.ModeAuto)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	go func() {
-		time.Sleep(50 * time.Millisecond)
-
-		r := Record([]byte("test"))
-
-		_, err := lw.Write(&r)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		err = lw.Flush()
-		if err != nil {
-			t.Fatal(err)
-		}
-	}()
+	err = lr.Seek(0, SeekEnd)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	go func() {
 		// Unblock reader in case test fails.
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(1 * time.Second)
 		err = lr.Close()
 		if err != nil {
 			t.Fatal(err)
@@ -660,7 +643,7 @@ func TestLog_TimeoutFollow(t *testing.T) {
 
 	var r Record
 
-	deadline := time.Now().Add(50 * time.Millisecond)
+	deadline := time.Now().Add(5 * time.Millisecond)
 	lr.SetWaitDeadline(deadline)
 
 	_, err = lr.Read(&r)
