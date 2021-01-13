@@ -2,9 +2,9 @@ package statsd
 
 import (
 	"fmt"
-	"net"
 
 	"gitlab.com/dataptive/styx/log"
+	"gitlab.com/dataptive/styx/logger"
 )
 
 const (
@@ -13,18 +13,13 @@ const (
 )
 
 type StatsdReporter struct {
-	conn   net.Conn
+	conn   *UDPConn
 	client *Client
 }
 
 func NewStatsdReporter(config Config) (sp *StatsdReporter, err error) {
 
-	udpAddr, err := net.ResolveUDPAddr("udp", config.Address)
-	if err != nil {
-		return nil, err
-	}
-
-	conn, err := net.DialUDP("udp", nil, udpAddr)
+	conn, err := NewUDPConn(config.Address)
 	if err != nil {
 		return nil, err
 	}
@@ -53,11 +48,17 @@ func (sp *StatsdReporter) ReportLogStats(name string, stats log.Stat) (err error
 
 	recordCount := stats.EndPosition - stats.StartPosition
 	recordCountLabel := fmt.Sprintf(recordCountPattern, name)
-	sp.client.Gauge(recordCountLabel, recordCount)
+	err = sp.client.SetGauge(recordCountLabel, recordCount)
+	if err != nil {
+		logger.Warn("statsd:", err)
+	}
 
 	fileSize := stats.EndOffset - stats.StartOffset
 	fileSizeLabel := fmt.Sprintf(fileSizePattern, name)
-	sp.client.Gauge(fileSizeLabel, fileSize)
+	err = sp.client.SetGauge(fileSizeLabel, fileSize)
+	if err != nil {
+		logger.Warn("statsd:", err)
+	}
 
 	return nil
 }

@@ -25,8 +25,8 @@ func NewClient(prefix string, w io.Writer) (c *Client) {
 	return c
 }
 
-// Increment a statsd counter
-func (c *Client) Increment(name string, count int64) (err error) {
+// IncrCounter a statsd counter
+func (c *Client) IncrCounter(name string, count int64) (err error) {
 
 	err = c.send(name, "%d|c", count)
 	if err != nil {
@@ -36,10 +36,10 @@ func (c *Client) Increment(name string, count int64) (err error) {
 	return nil
 }
 
-// Decrement a statsd counter
-func (c *Client) Decrement(name string, count int64) (err error) {
+// DecrCounter a statsd counter
+func (c *Client) DecrCounter(name string, count int64) (err error) {
 
-	err = c.Increment(name, -count)
+	err = c.IncrCounter(name, -count)
 	if err != nil {
 		return err
 	}
@@ -50,7 +50,7 @@ func (c *Client) Decrement(name string, count int64) (err error) {
 // Time send a statsd timing
 func (c *Client) Time(name string, duration time.Duration) (err error) {
 
-	return c.send(name, "%d|ms", millisecond(duration))
+	return c.send(name, "%d|ms", int64(duration.Seconds() * 1000))
 	if err != nil {
 		return err
 	}
@@ -59,7 +59,7 @@ func (c *Client) Time(name string, duration time.Duration) (err error) {
 }
 
 // Gauge send a tatsd gauge value
-func (c *Client) Gauge(name string, value int64) (err error) {
+func (c *Client) SetGauge(name string, value int64) (err error) {
 
 	err = c.send(name, "%d|g", value)
 	if err != nil {
@@ -75,9 +75,4 @@ func (c *Client) send(stat string, format string, args ...interface{}) (err erro
 	_, err = fmt.Fprintf(c.writer, format, args...)
 
 	return err
-}
-
-func millisecond(d time.Duration) int64 {
-
-	return int64(d.Seconds() * 1000)
 }
