@@ -45,7 +45,6 @@ func UpgradeTCP(w http.ResponseWriter) (c *net.TCPConn, err error) {
 	return conn.(*net.TCPConn), nil
 }
 
-// @TODO: remove CORS from here
 func UpgradeWebsocket(w http.ResponseWriter, r *http.Request, allowedOrigins []string)  (conn *websocket.Conn, err error) {
 
 	upgrader := websocket.Upgrader{
