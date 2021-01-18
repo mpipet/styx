@@ -147,6 +147,11 @@ func readBatch(bw *recio.BufferedWriter, lr *log.LogReader, limit int64, longPol
 			}
 
 			if longPoll {
+
+				if count > 0 {
+					break
+				}
+
 				start := time.Now()
 				deadline := start.Add(timeout)
 

@@ -175,6 +175,11 @@ func readLines(lw *recioutil.LineWriter, bw *recio.BufferedWriter, lr *log.LogRe
 			}
 
 			if longPoll {
+
+				if count > 0 {
+					break
+				}
+
 				start := time.Now()
 				deadline := start.Add(timeout)
 
