@@ -123,6 +123,18 @@ func (p ReadRecordsTCPParams) Validate() (err error) {
 	return nil
 }
 
+type ReadRecordsWSParams ReadRecordsTCPParams
+
+func (p ReadRecordsWSParams) Validate() (err error) {
+	err = validateWhence(p.Whence)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func validateWhence(whence log.Whence) (err error) {
 
 	validWhences := []log.Whence{

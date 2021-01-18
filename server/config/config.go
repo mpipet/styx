@@ -81,6 +81,7 @@ func Load(path string) (c Config, err error) {
 	c.PIDFile = tc.PIDFile
 	c.BindAddress = tc.BindAddress
 	c.ShutdownTimeout = tc.ShutdownTimeout
+	c.CORSAllowedOrigins = tc.CORSAllowedOrigins
 	c.HTTPReadBufferSize = tc.HTTPReadBufferSize
 	c.HTTPWriteBufferSize = tc.HTTPWriteBufferSize
 	c.HTTPLongpollTimeout = tc.HTTPLongpollTimeout

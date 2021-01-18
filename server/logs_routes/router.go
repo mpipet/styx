@@ -48,6 +48,10 @@ func RegisterRoutes(router *mux.Router, logManager *logman.LogManager, config co
 	router.HandleFunc("/restore", lr.RestoreHandler).
 		Methods(http.MethodPost)
 
+	router.HandleFunc("/{name}/records", lr.ReadWSHandler).
+		Methods(http.MethodGet).
+		Headers("Upgrade", "websocket")
+
 	router.HandleFunc("/{name}/records", lr.WriteTCPHandler).
 		Methods(http.MethodPost).
 		Headers("Upgrade", api.StyxProtocolString)

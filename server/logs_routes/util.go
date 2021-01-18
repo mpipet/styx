@@ -4,8 +4,11 @@ import (
 	"errors"
 	"net"
 	"net/http"
+	"strings"
 
 	"gitlab.com/dataptive/styx/api"
+
+	"github.com/gorilla/websocket"
 )
 
 var (
@@ -40,4 +43,62 @@ func UpgradeTCP(w http.ResponseWriter) (c *net.TCPConn, err error) {
 	}
 
 	return conn.(*net.TCPConn), nil
+}
+
+// @TODO: remove CORS from here
+func UpgradeWebsocket(w http.ResponseWriter, r *http.Request, allowedOrigins []string)  (conn *websocket.Conn, err error) {
+
+	upgrader := websocket.Upgrader{
+		CheckOrigin: func(r *http.Request) (ret bool) {
+			origin := r.Header.Get("Origin")
+			return matchOrigin(origin, allowedOrigins)
+		},
+	}
+
+	conn, err = upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return conn, nil
+}
+
+func matchOrigin(origin string, allowed []string) (match bool) {
+
+	if origin == "" {
+		return false
+	}
+
+	for _, a := range allowed {
+		if matchWildcard(origin, a) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func matchWildcard(s string, pattern string) (match bool) {
+
+	index := strings.IndexByte(pattern, '*')
+
+	if index == -1 {
+		if s == pattern {
+			return true
+		}
+
+		return false
+	}
+
+	prefix := pattern[0:index]
+	suffix := pattern[index+1:]
+
+	if !strings.HasPrefix(s, prefix) {
+		return false
+	}
+	if !strings.HasSuffix(s, suffix) {
+		return false
+	}
+
+	return true
 }
