@@ -55,7 +55,7 @@ func (lr *LogsRouter) ReadLinesHandler(w http.ResponseWriter, r *http.Request) {
 		Whence:   log.SeekOrigin,
 		Position: 0,
 		Count:    100,
-		Longpoll: false,
+		Follow:   false,
 	}
 	query := r.URL.Query()
 
@@ -75,9 +75,9 @@ func (lr *LogsRouter) ReadLinesHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	timeout := lr.config.HTTPLongpollTimeout
+	timeout := lr.config.HTTPFollowTimeout
 
-	if params.Longpoll {
+	if params.Follow {
 
 		rawTimeout := r.Header.Get(api.TimeoutHeaderName)
 		if rawTimeout != "" {
@@ -91,8 +91,8 @@ func (lr *LogsRouter) ReadLinesHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Limit the timeout as defined in config.
-		if timeout > lr.config.HTTPMaxLongpollTimeout {
-			timeout = lr.config.HTTPMaxLongpollTimeout
+		if timeout > lr.config.HTTPMaxFollowTimeout {
+			timeout = lr.config.HTTPMaxFollowTimeout
 		}
 	}
 
@@ -112,7 +112,7 @@ func (lr *LogsRouter) ReadLinesHandler(w http.ResponseWriter, r *http.Request) {
 	bufferedWriter := recio.NewBufferedWriter(w, lr.config.HTTPWriteBufferSize, recio.ModeAuto)
 	lineWriter := recioutil.NewLineWriter(bufferedWriter, delimiter)
 
-	logReader, err := managedLog.NewReader(lr.config.HTTPReadBufferSize, params.Longpoll, recio.ModeManual)
+	logReader, err := managedLog.NewReader(lr.config.HTTPReadBufferSize, params.Follow, recio.ModeManual)
 	if err == logman.ErrUnavailable {
 		api.WriteError(w, http.StatusBadRequest, api.ErrLogNotAvailable)
 		logger.Debug(err)
@@ -139,7 +139,7 @@ func (lr *LogsRouter) ReadLinesHandler(w http.ResponseWriter, r *http.Request) {
 
 	fillTimeout := time.Duration(timeout) * time.Second
 
-	err = readLines(lineWriter, bufferedWriter, logReader, params.Count, params.Longpoll, fillTimeout)
+	err = readLines(lineWriter, bufferedWriter, logReader, params.Count, params.Follow, fillTimeout)
 	if err != nil {
 		logger.Debug(err)
 		logReader.Close()
@@ -152,7 +152,7 @@ func (lr *LogsRouter) ReadLinesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func readLines(lw *recioutil.LineWriter, bw *recio.BufferedWriter, lr *log.LogReader, limit int64, longPoll bool, timeout time.Duration) (err error) {
+func readLines(lw *recioutil.LineWriter, bw *recio.BufferedWriter, lr *log.LogReader, limit int64, follow bool, timeout time.Duration) (err error) {
 
 	count := int64(0)
 	record := &log.Record{}
@@ -174,7 +174,7 @@ func readLines(lw *recioutil.LineWriter, bw *recio.BufferedWriter, lr *log.LogRe
 				return err
 			}
 
-			if longPoll {
+			if follow {
 
 				if count > 0 {
 					break

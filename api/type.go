@@ -79,7 +79,7 @@ type ReadRecordsBatchParams struct {
 	Whence   log.Whence `schema:"whence"`
 	Position int64      `schema:"position"`
 	Count    int64      `schema:"count"`
-	Longpoll bool       `schema:"longpoll"`
+	Follow   bool       `schema:"follow"`
 }
 
 func (p ReadRecordsBatchParams) Validate() (err error) {

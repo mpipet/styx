@@ -16,8 +16,8 @@ type TOMLConfig struct {
 	CORSAllowedOrigins     []string              `toml:"cors_allowed_origins"`
 	HTTPWriteBufferSize    int                   `toml:"http_write_buffer_size"`
 	HTTPReadBufferSize     int                   `toml:"http_read_buffer_size"`
-	HTTPLongpollTimeout    int                   `toml:"http_longpoll_timeout"`
-	HTTPMaxLongpollTimeout int                   `toml:"http_max_longpoll_timeout"`
+	HTTPFollowTimeout      int                   `toml:"http_follow_timeout"`
+	HTTPMaxFollowTimeout   int                   `toml:"http_max_follow_timeout"`
 	TCPReadBufferSize      int                   `toml:"tcp_read_buffer_size"`
 	TCPWriteBufferSize     int                   `toml:"tcp_write_buffer_size"`
 	TCPTimeout             int                   `toml:"tcp_timeout"`
@@ -55,8 +55,8 @@ type Config struct {
 	CORSAllowedOrigins     []string
 	HTTPReadBufferSize     int
 	HTTPWriteBufferSize    int
-	HTTPLongpollTimeout    int
-	HTTPMaxLongpollTimeout int
+	HTTPFollowTimeout      int
+	HTTPMaxFollowTimeout   int
 	TCPReadBufferSize      int
 	TCPWriteBufferSize     int
 	TCPTimeout             int
@@ -84,8 +84,8 @@ func Load(path string) (c Config, err error) {
 	c.CORSAllowedOrigins = tc.CORSAllowedOrigins
 	c.HTTPReadBufferSize = tc.HTTPReadBufferSize
 	c.HTTPWriteBufferSize = tc.HTTPWriteBufferSize
-	c.HTTPLongpollTimeout = tc.HTTPLongpollTimeout
-	c.HTTPMaxLongpollTimeout = tc.HTTPMaxLongpollTimeout
+	c.HTTPFollowTimeout = tc.HTTPFollowTimeout
+	c.HTTPMaxFollowTimeout = tc.HTTPMaxFollowTimeout
 	c.TCPReadBufferSize = tc.TCPReadBufferSize
 	c.TCPWriteBufferSize = tc.TCPWriteBufferSize
 	c.TCPTimeout = tc.TCPTimeout
