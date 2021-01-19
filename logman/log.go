@@ -338,5 +338,11 @@ func (ml *Log) scan() {
 	ml.log = l
 	ml.writer = writer
 	ml.fanin = log.NewFanin(writer)
-}
 
+	stats := ml.log.Stat()
+	ml.reporter.ReportLogStats(ml.name, stats)
+
+	ml.log.Subscribe(ml.listenerChan)
+
+	go ml.metricsListener()
+}
