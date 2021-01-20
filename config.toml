@@ -1,6 +1,6 @@
 # Styx config file !
 
-pid_file = "./data/styx.pid"
+pid_file = "./styx.pid"
 bind_address = "127.0.0.1:8000"
 shutdown_timeout = 3
 cors_allowed_origins = ["*"]
@@ -14,7 +14,7 @@ tcp_timeout = 100
 
 [log_manager]
 
-data_directory = "./data/logs"
+data_directory = "./data"
 write_buffer_size = 1048576
 
 [metrics]
