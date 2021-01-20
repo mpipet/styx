@@ -232,6 +232,8 @@ func (ml *Log) close() (err error) {
 		return nil
 	}
 
+	ml.status = StatusUnknown
+
 	err = ml.fanin.Close()
 	if err != nil {
 		return err

@@ -12,9 +12,10 @@ import (
 )
 
 var (
-	ErrNotExist    = errors.New("log manager: log does not exist")
-	ErrUnavailable = errors.New("log manager: log unavailable")
-	ErrInvalidName = errors.New("log manager: invalid log name")
+	ErrClosed      = errors.New("logman: closed")
+	ErrNotExist    = errors.New("logman: log does not exist")
+	ErrUnavailable = errors.New("logman: log unavailable")
+	ErrInvalidName = errors.New("logman: invalid log name")
 )
 
 type LogManager struct {
@@ -22,6 +23,7 @@ type LogManager struct {
 	logs     []*Log
 	logsLock sync.Mutex
 	reporter metrics.Reporter
+	closed   bool
 }
 
 func NewLogManager(config Config, reporter metrics.Reporter) (lm *LogManager, err error) {
@@ -67,6 +69,10 @@ func (lm *LogManager) Close() (err error) {
 	lm.logsLock.Lock()
 	defer lm.logsLock.Unlock()
 
+	if lm.closed {
+		return nil
+	}
+
 	for _, ml := range lm.logs {
 
 		err = ml.close()
@@ -74,6 +80,8 @@ func (lm *LogManager) Close() (err error) {
 			return err
 		}
 	}
+
+	lm.closed = true
 
 	return nil
 }
@@ -92,6 +100,10 @@ func (lm *LogManager) CreateLog(name string, logConfig log.Config) (ml *Log, err
 
 	lm.logsLock.Lock()
 	defer lm.logsLock.Unlock()
+
+	if lm.closed {
+		return nil, ErrClosed
+	}
 
 	ml, err = createLog(lm.config.DataDirectory, name, logConfig, log.DefaultOptions, lm.config.WriteBufferSize, lm.reporter)
 	if err != nil {
@@ -127,13 +139,17 @@ func (lm *LogManager) GetLog(name string) (ml *Log, err error) {
 
 func (lm *LogManager) DeleteLog(name string) (err error) {
 
+	lm.logsLock.Lock()
+	defer lm.logsLock.Unlock()
+
+	if lm.closed {
+		return ErrClosed
+	}
+
 	valid := logNameRegexp.MatchString(name)
 	if !valid {
 		return ErrInvalidName
 	}
-
-	lm.logsLock.Lock()
-	defer lm.logsLock.Unlock()
 
 	pos := -1
 	for i, ml := range lm.logs {
@@ -169,6 +185,10 @@ func (lm *LogManager) DeleteLog(name string) (err error) {
 
 func (lm *LogManager) RestoreLog(name string, r io.Reader) (err error) {
 
+	if lm.closed {
+		return ErrClosed
+	}
+
 	valid := logNameRegexp.MatchString(name)
 	if !valid {
 		return ErrInvalidName
@@ -181,14 +201,19 @@ func (lm *LogManager) RestoreLog(name string, r io.Reader) (err error) {
 		return err
 	}
 
+	lm.logsLock.Lock()
+	defer lm.logsLock.Unlock()
+
+	if lm.closed {
+		return ErrClosed
+	}
+
 	ml, err := openLog(lm.config.DataDirectory, name, log.DefaultOptions, lm.config.WriteBufferSize, lm.reporter)
 	if err != nil {
 		return err
 	}
 
-	lm.logsLock.Lock()
 	lm.logs = append(lm.logs, ml)
-	lm.logsLock.Unlock()
 
 	return nil
 }

@@ -96,6 +96,12 @@ func (s *Server) Run() (err error) {
 		ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 		defer cancel()
 
+		// Close log manager first to ensure all log operations will unlock.
+		err = logManager.Close()
+		if err != nil {
+			logger.Fatal(err)
+		}
+
 		err = server.Shutdown(ctx)
 		if err != nil {
 
@@ -107,11 +113,6 @@ func (s *Server) Run() (err error) {
 		}
 
 		err = nodeManager.Close()
-		if err != nil {
-			logger.Fatal(err)
-		}
-
-		err = logManager.Close()
 		if err != nil {
 			logger.Fatal(err)
 		}
