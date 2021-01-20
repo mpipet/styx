@@ -1,7 +1,7 @@
 # Styx config file !
 
-pid_file = "./data/nodeNUM/styx.pid"
-bind_address = "127.0.0.1:800NUM"
+pid_file = "./data/styx.pid"
+bind_address = "127.0.0.1:8000"
 shutdown_timeout = 3
 cors_allowed_origins = ["*"]
 http_read_buffer_size = 1048576
@@ -14,14 +14,8 @@ tcp_timeout = 100
 
 [log_manager]
 
-data_directory = "./data/nodeNUM/logs"
+data_directory = "./data/logs"
 write_buffer_size = 1048576
-
-[node_manager]
-
-node_name = "node1"
-raft_directory = "./data/nodeNUM/raft"
-# advertise_address = "127.0.0.1:800NUM"
 
 [metrics]
 

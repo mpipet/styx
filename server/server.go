@@ -13,7 +13,6 @@ import (
 	"gitlab.com/dataptive/styx/lockfile"
 	"gitlab.com/dataptive/styx/logger"
 	"gitlab.com/dataptive/styx/logman"
-	"gitlab.com/dataptive/styx/nodeman"
 	"gitlab.com/dataptive/styx/metrics"
 	"gitlab.com/dataptive/styx/server/config"
 )
@@ -69,12 +68,7 @@ func (s *Server) Run() (err error) {
 		return err
 	}
 
-	nodeManager, err := nodeman.NewNodeManager(s.config.NodeManager)
-	if err != nil {
-		return err
-	}
-
-	router := NewRouter(logManager, nodeManager, s.config)
+	router := NewRouter(logManager, s.config)
 
 	server := &http.Server{
 		Addr:    s.config.BindAddress,
@@ -110,11 +104,6 @@ func (s *Server) Run() (err error) {
 			}
 
 			logger.Warn(ErrShutdownTimedOut)
-		}
-
-		err = nodeManager.Close()
-		if err != nil {
-			logger.Fatal(err)
 		}
 
 		err = metricsReporter.Close()

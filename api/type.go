@@ -11,7 +11,6 @@ const (
 	TimeoutHeaderName     = "X-Styx-Timeout"
 	RecordLinesMediaType  = "application/ld+text"
 	RecordBinaryMediaType = "application/vnd.styx-records"
-	RaftProtocolString    = "hashicorp-raft/3"
 	StyxProtocolString    = "styx/0"
 )
 
@@ -158,19 +157,4 @@ func validateWhence(whence log.Whence) (err error) {
 	}
 
 	return nil
-}
-
-type ListNodesResponse []Node
-
-type Node struct {
-	Name     string `json:"name"`
-	Leader   bool   `json:"leader"`
-	Suffrage string `json:"suffrage"`
-	Address  string `json:"address"`
-}
-
-type AddNodeForm struct {
-	Name    string `schema:"name,required"`
-	Address string `schema:"address,required"`
-	Voter   bool   `schema:"voter"`
 }

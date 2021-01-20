@@ -4,7 +4,6 @@ import (
 	"gitlab.com/dataptive/styx/logman"
 	"gitlab.com/dataptive/styx/metrics"
 	"gitlab.com/dataptive/styx/metrics/statsd"
-	"gitlab.com/dataptive/styx/nodeman"
 
 	"github.com/BurntSushi/toml"
 )
@@ -22,7 +21,6 @@ type TOMLConfig struct {
 	TCPWriteBufferSize     int                   `toml:"tcp_write_buffer_size"`
 	TCPTimeout             int                   `toml:"tcp_timeout"`
 	LogManager             TOMLLogManagerConfig  `toml:"log_manager"`
-	NodeManager            TOMLNodeManagerConfig `toml:"node_manager"`
 	Metrics                TOMLMetricsConfig     `toml:"metrics"`
 }
 
@@ -30,12 +28,6 @@ type TOMLConfig struct {
 type TOMLLogManagerConfig struct {
 	DataDirectory   string `toml:"data_directory"`
 	WriteBufferSize int    `toml:"write_buffer_size"`
-}
-
-type TOMLNodeManagerConfig struct {
-	NodeName         string `toml:"node_name"`
-	RaftDirectory    string `toml:"raft_directory"`
-	AdvertiseAddress string `toml:"advertise_address"`
 }
 
 type TOMLMetricsConfig struct {
@@ -61,7 +53,6 @@ type Config struct {
 	TCPWriteBufferSize     int
 	TCPTimeout             int
 	LogManager             logman.Config
-	NodeManager            nodeman.Config
 	Metrics                metrics.Config
 }
 
@@ -72,10 +63,6 @@ func Load(path string) (c Config, err error) {
 	_, err = toml.DecodeFile(path, tc)
 	if err != nil {
 		return c, err
-	}
-
-	if tc.NodeManager.AdvertiseAddress == "" {
-		tc.NodeManager.AdvertiseAddress = tc.BindAddress
 	}
 
 	c.PIDFile = tc.PIDFile
@@ -90,7 +77,6 @@ func Load(path string) (c Config, err error) {
 	c.TCPWriteBufferSize = tc.TCPWriteBufferSize
 	c.TCPTimeout = tc.TCPTimeout
 	c.LogManager = logman.Config(tc.LogManager)
-	c.NodeManager = nodeman.Config(tc.NodeManager)
 	c.Metrics = metrics.Config{
 		Statsd: (*statsd.Config)(tc.Metrics.Statsd),
 	}

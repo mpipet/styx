@@ -5,10 +5,8 @@ import (
 
 	"gitlab.com/dataptive/styx/api"
 	"gitlab.com/dataptive/styx/logman"
-	"gitlab.com/dataptive/styx/nodeman"
 	"gitlab.com/dataptive/styx/server/config"
 	"gitlab.com/dataptive/styx/server/logs_routes"
-	"gitlab.com/dataptive/styx/server/nodes_routes"
 
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -20,7 +18,7 @@ type Router struct {
 	config config.Config
 }
 
-func NewRouter(logManager *logman.LogManager, nodeManager *nodeman.NodeManager, config config.Config) (r *Router) {
+func NewRouter(logManager *logman.LogManager, config config.Config) (r *Router) {
 
 	router := mux.NewRouter()
 
@@ -33,7 +31,6 @@ func NewRouter(logManager *logman.LogManager, nodeManager *nodeman.NodeManager, 
 	}
 
 	logs_routes.RegisterRoutes(router.PathPrefix("/logs").Subrouter(), logManager, config)
-	nodes_routes.RegisterRoutes(router.PathPrefix("/nodes").Subrouter(), nodeManager, config)
 
 	router.Handle("/metrics", promhttp.Handler())
 
