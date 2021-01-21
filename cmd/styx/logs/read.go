@@ -74,8 +74,15 @@ func ReadLog(args []string) {
 	params := api.ReadRecordsTCPParams{
 		Whence:   log.Whence(*whence),
 		Position: *position,
-		Count:    *count,
-		Follow:   *follow,
+	}
+
+	logInfo, err := httpClient.GetLog(readOpts.Args()[0])
+	if err != nil {
+		cmd.DisplayError(err)
+	}
+
+	if !*follow && *count == -1 {
+		count = &logInfo.RecordCount
 	}
 
 	tcpReader, err := httpClient.ReadRecordsTCP(readOpts.Args()[0], params, recio.ModeAuto, readBufferSize, timeout)
@@ -108,7 +115,12 @@ func ReadLog(args []string) {
 
 	mustFlush := isTerm || *unbuffered
 	record := &log.Record{}
+	read := int64(0)
 	for {
+		if !*follow && read == *count {
+			break
+		}
+
 		_, err := tcpReader.Read(record)
 		if err == io.EOF {
 			break
@@ -135,6 +147,8 @@ func ReadLog(args []string) {
 				cmd.DisplayError(err)
 			}
 		}
+
+		read++
 	}
 
 	err = bufferedWriter.Flush()

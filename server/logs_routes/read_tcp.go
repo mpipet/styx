@@ -39,8 +39,6 @@ func (lr *LogsRouter) ReadTCPHandler(w http.ResponseWriter, r *http.Request) {
 	params := api.ReadRecordsTCPParams{
 		Whence:   log.SeekOrigin,
 		Position: 0,
-		Count:    10,
-		Follow:   false,
 	}
 	query := r.URL.Query()
 
@@ -73,7 +71,7 @@ func (lr *LogsRouter) ReadTCPHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logReader, err := managedLog.NewReader(lr.config.HTTPReadBufferSize, params.Follow, recio.ModeManual)
+	logReader, err := managedLog.NewReader(lr.config.HTTPReadBufferSize, true, recio.ModeManual)
 	if err == logman.ErrUnavailable {
 		api.WriteError(w, http.StatusBadRequest, api.ErrLogNotAvailable)
 		logger.Debug(err)
@@ -123,7 +121,7 @@ func (lr *LogsRouter) ReadTCPHandler(w http.ResponseWriter, r *http.Request) {
 		logReader.Close()
 	})
 
-	err = readTCP(tcpWriter, logReader, params.Count, params.Follow)
+	err = readTCP(tcpWriter, logReader)
 	if err != nil {
 		logger.Debug(err)
 
@@ -155,26 +153,12 @@ func (lr *LogsRouter) ReadTCPHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func readTCP(w *tcp.TCPWriter, lr *log.LogReader, limit int64, follow bool) (err error) {
+func readTCP(w *tcp.TCPWriter, lr *log.LogReader) (err error) {
 
-	count := int64(0)
 	record := log.Record{}
 
 	for {
-		if count == limit {
-			break
-		}
-
 		_, err := lr.Read(&record)
-		if err == io.EOF {
-
-			if follow == false {
-				break
-			}
-
-			continue
-		}
-
 		if err == recio.ErrMustFill {
 
 			err = w.Flush()
@@ -198,8 +182,6 @@ func readTCP(w *tcp.TCPWriter, lr *log.LogReader, limit int64, follow bool) (err
 		if err != nil {
 			return err
 		}
-
-		count++
 	}
 
 	err = w.Flush()

@@ -28,7 +28,7 @@ func (lr *LogsRouter) ReadBatchHandler(w http.ResponseWriter, r *http.Request) {
 	params := api.ReadRecordsBatchParams{
 		Whence:   log.SeekOrigin,
 		Position: 0,
-		Count:    100,
+		Count:    -1,
 		Follow:   false,
 	}
 	query := r.URL.Query()

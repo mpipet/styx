@@ -54,7 +54,7 @@ func (lr *LogsRouter) ReadLinesHandler(w http.ResponseWriter, r *http.Request) {
 	params := api.ReadRecordsLinesParams{
 		Whence:   log.SeekOrigin,
 		Position: 0,
-		Count:    100,
+		Count:    -1,
 		Follow:   false,
 	}
 	query := r.URL.Query()
