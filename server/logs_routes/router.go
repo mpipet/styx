@@ -87,9 +87,17 @@ func RegisterRoutes(router *mux.Router, logManager *logman.LogManager, config co
 
 	router.HandleFunc("/{name}/records", lr.WriteHandler).
 		Methods(http.MethodPost)
+		Headers(
+			"Content-Type", "application/octet-stream",
+			"Content-Type", "",
+		)
 
 	router.HandleFunc("/{name}/records", lr.ReadHandler).
-		Methods(http.MethodGet)
+		Methods(http.MethodGet).
+		Headers(
+			"Accept", "application/octet-stream",
+			"Accept", "",
+		)
 
 	return lr
 }
