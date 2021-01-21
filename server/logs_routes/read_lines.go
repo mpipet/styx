@@ -75,7 +75,7 @@ func (lr *LogsRouter) ReadLinesHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	timeout := lr.config.HTTPFollowTimeout
+	timeout := -1
 
 	if params.Follow {
 
@@ -88,11 +88,6 @@ func (lr *LogsRouter) ReadLinesHandler(w http.ResponseWriter, r *http.Request) {
 				logger.Debug(err)
 				return
 			}
-		}
-
-		// Limit the timeout as defined in config.
-		if timeout > lr.config.HTTPMaxFollowTimeout {
-			timeout = lr.config.HTTPMaxFollowTimeout
 		}
 	}
 
@@ -137,9 +132,7 @@ func (lr *LogsRouter) ReadLinesHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", mediaType)
 	w.WriteHeader(http.StatusOK)
 
-	fillTimeout := time.Duration(timeout) * time.Second
-
-	err = readLines(lineWriter, bufferedWriter, logReader, params.Count, params.Follow, fillTimeout)
+	err = readLines(lineWriter, bufferedWriter, logReader, params.Count, params.Follow, timeout)
 	if err != nil {
 		logger.Debug(err)
 		logReader.Close()
@@ -152,10 +145,11 @@ func (lr *LogsRouter) ReadLinesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func readLines(lw *recioutil.LineWriter, bw *recio.BufferedWriter, lr *log.LogReader, limit int64, follow bool, timeout time.Duration) (err error) {
+func readLines(lw *recioutil.LineWriter, bw *recio.BufferedWriter, lr *log.LogReader, limit int64, follow bool, timeout int) (err error) {
 
 	count := int64(0)
 	record := &log.Record{}
+	waitTimeout := time.Duration(timeout) * time.Second
 
 	for {
 		if count == limit {
@@ -180,10 +174,12 @@ func readLines(lw *recioutil.LineWriter, bw *recio.BufferedWriter, lr *log.LogRe
 					break
 				}
 
-				start := time.Now()
-				deadline := start.Add(timeout)
+				if timeout != -1 {
+					start := time.Now()
+					deadline := start.Add(waitTimeout)
 
-				lr.SetWaitDeadline(deadline)
+					lr.SetWaitDeadline(deadline)
+				}
 			}
 
 			err = lr.Fill()
