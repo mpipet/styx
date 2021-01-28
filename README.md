@@ -20,22 +20,22 @@ More specifically we tried to address :
 Features
 --------
 
-- Immediately integrated: produce and consume single or batched events through GET and POST requests
-- Integration options: HTTP long-polling, WebSockets, simple and fast binary protocol when every bit of performance is critical
-- Fast data ingestion: directly push large line-delimited files with cURL
-- Simple to manage: REST API, full-featured CLI
-- Simple to deploy: one Golang binary, no dependencies
-- Monitoring: out-of-the-box Prometheus, Statsd
-- Backuping: fast and simple backup and restore through cURL or the styx CLI
-- Strong guarantees: records written to logs are atomic and durable. Records acknowledged only after having been fsynced to permanent storage.
-- Low latency: in the order of milliseconds.
-- Seamless performance: automated server-side batching, so the client doesn't have to carry the complexity.
-- Data security: data corruption detection at the record level.
-- Simple configuration: simple TOML configuration with sane defaults.
-- Data management: count, size and age based expiration policies.
-- Fast access: sparse indexing for low latency seeks without impacting write performance.
-- Scaling logs: storage engine designed to maintain sequential writing performance when pushing massive streams to multiple logs at once. 
-- Scaling clients: handles thousands of producers and consumers at once.
+- **Immediately integrated**: produce and consume single or batched events through GET and POST requests
+- **Integration options**: HTTP long-polling, WebSockets, simple and fast binary protocol when every bit of performance is critical
+- **Fast data ingestion**: directly push large line-delimited files with cURL
+- **Simple to manage**: REST API, full-featured CLI
+- **Simple to deploy**: one Golang binary, no dependencies
+- **Monitoring**: out-of-the-box Prometheus, Statsd
+- **Backuping**: fast and simple backup and restore through cURL or the styx CLI
+- **Strong guarantees**: records written to logs are atomic and durable. Records acknowledged only after having been fsynced to permanent storage.
+- **Low latency**: in the order of milliseconds.
+- **Seamless performance**: automated server-side batching, so the client doesn't have to carry the complexity.
+- **Data security**: data corruption detection at the record level.
+- **Simple configuration**: simple TOML configuration with sane defaults.
+- **Data management**: count, size and age based expiration policies.
+- **Fast access**: sparse indexing for low latency seeks without impacting write performance.
+- **Scaling logs**: storage engine designed to maintain sequential writing performance when pushing massive streams to multiple logs at once. 
+- **Scaling clients**: handles thousands of producers and consumers at once.
 
 
 Design
