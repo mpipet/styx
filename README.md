@@ -1,7 +1,7 @@
 Styx
 ====
 
-<img src="https://gitlab.com/dataptive/styx/-/blob/master/docs/logo-styx.png">
+<img src="https://gitlab.com/dataptive/styx/-/raw/master/docs/logo-styx.png" style="height: 35px">
 
 
 What is Styx ?
