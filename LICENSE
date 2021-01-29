@@ -3,9 +3,17 @@ Business Source License 1.1
 Licensor:             Dataptive SAS
 
 Licensed Work:        Styx v0.1
-                      The Licenced Work is (c) 2020 Dataptive SAS.
+                      The Licenced Work is (c) 2020 Dataptive SAS
 
-Additional Use Grant: TODO
+Additional Use Grant: You may make use of the Licensed Work, provided that you
+                      may not use the Licensed Work for an Event Streaming
+                      Database Service.
+
+                      An "Event Streaming Database Service" is a commercial
+                      offering that allows third parties (other than your
+                      employees and contractors) to access the functionality
+                      of the Licensed Work by creating logs whose
+                      configurations are controlled by such third parties.
 
 Change Date:          2025-01-01
 
