@@ -1,5 +1,4 @@
-<img src="https://gitlab.com/dataptive/styx/-/raw/master/docs/logo-styx.png" alt="Styx">
-
+<img src="https://gitlab.com/dataptive/styx/-/raw/master/docs/logo.png" alt="Styx" width="250">
 
 What is Styx ?
 --------------
