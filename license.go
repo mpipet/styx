@@ -1,4 +1,4 @@
-// Copyright 2020 Dataptive SAS.
+// Copyright 2021 Dataptive SAS.
 //
 // Use of this software is governed by the Business Source License included in
 // the LICENSE file.
