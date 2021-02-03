@@ -5,7 +5,10 @@ Read using longpolling
 
 Read all records from `myLog` and wait for more to be written using HTTP long polling.
 
-Python:
+Python
+
+_Requires `requests` package._
+
 ```python
   headers = {
     'Accept': 'application/ld+text;line-ending=lf',
@@ -25,7 +28,8 @@ Python:
       position += 1
 ```
 
-Go:
+Go
+
 ```golang
   client := &http.Client{}
 

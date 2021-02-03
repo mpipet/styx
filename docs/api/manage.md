@@ -4,12 +4,14 @@ Manage logs
 
 ### Create log
 
-Create a new log:   
+Create a new log
+
 ```bash
 curl -XPOST 'http://localhost:8000/logs' -d name=myLog
 ```
 
-Response:
+Response
+
 ```json
 {
   "name": "myLog",
@@ -21,7 +23,7 @@ Response:
 }
 ```
 
-List of all available parameters:
+List of all available form parameters:
 
 | Param               | Description                                                         | Default      |
 |---------------------|---------------------------------------------------------------------|--------------|
@@ -37,12 +39,14 @@ List of all available parameters:
 
 ### List logs
 
-Retrieves the details of all Styx logs:   
+Retrieves the details of all Styx logs
+
 ```bash
 curl -XGET 'http://localhost:8000/logs'
 ```
 
-Response:
+Response
+
 ```json
 [
   {
@@ -66,12 +70,14 @@ Response:
 
 ### Get log by name
 
-Retrieves the details of a log:   
+Retrieves the details of a log
+
 ```bash
 curl -XGET 'http://localhost:8000/logs/myLog'
 ```
 
-Response:
+Response
+
 ```json
 {
   "name": "myLog",
@@ -85,21 +91,24 @@ Response:
 
 ### Delete log
 
-Permanently delete a log and its data:   
+Permanently delete a log and its data
+
 ```bash
 curl -XDELETE 'http://localhost:8000/logs/myLog'
 ```
 
 ### Backup log
 
-Download a backup of the log:   
+Download a backup of the log
+
 ```bash
 curl -XGET 'http://localhost:8000/logs/myLog/backup' -o myLogBackup.tar.gz
 ```
 
 ### Restore log
 
-Imports a previously backed up log archive:  
+Imports a previously backed up log archive
+
 ```bash
 curl -XPOST 'http://localhost:8000/logs/restore?name=myRestoredLog' --data-binary '@myLogBackup.tar.gz'  
 ```

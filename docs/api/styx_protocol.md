@@ -10,7 +10,7 @@ The protocol has two parts, an handshake using HTTP and a data stream transfer.
 We use the HTTP upgrade mechanism for handshake as described in [rfc 2616](https://tools.ietf.org/html/rfc2616#section-14.42).
 
 This mecanism has many advantages.
-It allows us to rely on HTTP for TLS, authentication.
+It allows us to rely on HTTP for TLS, authentication etc.
 If an error occurs for some reason, we can return JSON HTTP errors before starting the stream.
 Handshake complexity is offloaded to HTTP, making the the protocol simpler for client implementers.
 

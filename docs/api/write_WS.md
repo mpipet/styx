@@ -5,7 +5,10 @@ Write with Websocket
 
 Write ten records to `myLog` using websocket.
 
-Python:
+Python
+
+_Requires `websocket` package._
+
 ```python
 endpoint = 'ws://localhost:8000/logs/myLog/records'
 
@@ -17,7 +20,10 @@ for i in range(10):
   ws.send(record)
 ```
 
-Go:
+Go
+
+_Requires `github.com/gorilla/websocket` package._
+
 ```golang
   dialer := websocket.Dialer{}
 

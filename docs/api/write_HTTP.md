@@ -5,15 +5,20 @@ Write with HTTP
 
 Write one record to `myLog`.
 
-Python:
+Python
+
+_Requires `requests` package._
+
 ```python
   endpoint = 'http://localhost:8000/logs/myLog/records'
+
   record = bytes('my record content', 'utf-8')
 
   res = requests.post(endpoint, data=record)
 ```
 
-Go:
+Go
+
 ```golang
   endpoint := "http://localhost:8000/logs/myLog/records"
 
@@ -31,10 +36,12 @@ Go:
 
 Write ten line delimited records to `myLog`.
 
-Python:
+Python
+
+_Requires `requests` package._
+
 ```python
   records = b''
-
   for i in range(10):
     records += bytes('my record content\n', 'utf-8')
 
@@ -47,7 +54,8 @@ Python:
   requests.post(endpoint, headers=headers, data=records)
 ```
 
-Go:
+Go
+
 ```golang
   client := &http.Client{}
 

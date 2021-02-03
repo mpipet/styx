@@ -5,17 +5,22 @@ Read with Websocket
 
 Read all records from `myLog` and wait for more to be written using websocket.
 
-Python:
+Python
+
+_Requires `websocket` package._
+
 ```python
 endpoint = 'ws://localhost:8000/logs/myLog/records'
 ws = websocket.create_connection(endpoint)
 
 while True:
   record = ws.recv()
-  print(record.decode('utf_8'))
 ```
 
-Go:
+Go
+
+_Requires `github.com/gorilla/websocket` package._
+
 ```golang
   dialer := websocket.Dialer{}
 
@@ -29,19 +34,10 @@ Go:
     log.Fatal(err)
   }
 
-  if res.StatusCode != http.StatusSwitchingProtocols {
-    log.Fatal("an error occured")
-  }
-
-  defer conn.Close()
-
   for {
       _, record, err := conn.ReadMessage()
       if err != nil {
           log.Fatal(err)
       }
-
-      fmt.Println(string(record))
   }
-
 ```
