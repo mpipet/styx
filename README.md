@@ -36,9 +36,4 @@ Features
 - **Scaling logs**: storage engine designed to maintain sequential writing performance when pushing massive streams to multiple logs at once. 
 - **Scaling clients**: handles thousands of producers and consumers at once.
 
-
-Design
-------
-
-
 See [Documentation](/docs) for more informations about Styx.
