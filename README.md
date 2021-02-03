@@ -41,36 +41,4 @@ Design
 ------
 
 
-
-Running Styx
-------------
-
-Setup data directory
-
-```bash
-mkdir data
-```
-
-Run styx
-
-```bash
-go run cmd/styx-server/main.go --config ./config.toml --log-level TRACE
-```
-
-Running Styx with Docker
-------------------------
-
-Build:
-```bash
-docker build -t styx .
-```
-
-Run:
-```bash
-docker run -it --rm -p 8000:8000 --name styx styx
-```
-
-Run using host data directory:
-```bash
-docker run -it --rm -p 8000:8000 --mount type=bind,source="$(pwd)"/data,target=/data --name styx styx
-```
+See [Documentation](/docs) for more informations about Styx.
