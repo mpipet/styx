@@ -5,10 +5,10 @@ Styx documentation
 - [Design](./design.md)  
 - [Getting started](./getting_started.md) 
 - Administration
-	1. [Installation](./installation.md)
-	1. [Configuration](./configuration.md)
-	1. [Monitoring](./monitoring.md)
-	1. [CLI](./CLI.md)
+	1. [Installation](./administration/installation.md)
+	1. [Configuration](./administration/configuration.md)
+	1. [Monitoring](./administration/monitoring.md)
+	1. [CLI](./administration/CLI.md)
 - API
 	1. [Manage logs](./api/manage.md)
 	1. [Write with HTTP](./api/write_HTTP.md)
