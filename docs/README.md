@@ -5,7 +5,7 @@ Styx documentation
 - [Design](./design.md)  
 - [Getting started](./getting_started.md) 
 - Administration
-	1. [Installation](./administration.md)
+	1. [Installation](./installation.md)
 	1. [Configuration](./configuration.md)
 	1. [Monitoring](./monitoring.md)
 	1. [CLI](./CLI.md)
