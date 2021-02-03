@@ -60,9 +60,9 @@ Go
   client := &http.Client{}
 
   buf := bytes.NewBuffer([]byte{})
+  record := []byte("my record content\n")
 
   for i := 0; i < 10; i++ {
-    record := []byte("my record content\n")
     buf.Write(record)
   }
 

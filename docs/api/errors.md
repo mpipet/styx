@@ -3,7 +3,7 @@ Errors
 
 Styx uses consistant error format accross its API. Errors are returned whith an HTTP error code from `4xx` to `5xx`.
 
-### Example:
+Example
 
 ```json
   {
