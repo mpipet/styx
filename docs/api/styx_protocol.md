@@ -63,7 +63,7 @@ All integer values of the protocol are big-endian ordered.
 | Heartbeat | 3            |
 | Error     | 4            |
 
-#### Record message
+### Record message
 
 Record messages are used for transmitting records between two peers.
 
@@ -71,10 +71,9 @@ Record messages are used for transmitting records between two peers.
   +----------------+--------------------------------+--------------------------------+
   |  type (int16)  |          size (int32)          |       record (size bytes)      |
   +----------------+--------------------------------+--------------------------------+
-
 ```
 
-#### Ack message
+### Ack message
 
 Ack messages are sent back from the server to the client to confirm log records were syncronized on disk.
 Since Styx protocol is message stream oriented and not request response oriented, a ack message is not expected for every record message. 
@@ -83,15 +82,13 @@ Since Styx protocol is message stream oriented and not request response oriented
   +----------------+--------------------------------+--------------------------------+
   |  type (int16)  |        position (int64)        |           count (int64)        |
   +----------------+--------------------------------+--------------------------------+
-
 ```
 
-`count` keeps track of the number of records sent and successfully synchronized on disk since the beginning of the stream.
-
+`count` keeps track of the number of records sent and successfully synchronized on disk since the beginning of the stream.  
 `position` contains the highest syncronized position in the log.
 
 
-#### Heartbeat message
+### Heartbeat message
 
 Heartbeat messages are sent from both peers to signal they are still alive. 
 
@@ -99,10 +96,9 @@ Heartbeat messages are sent from both peers to signal they are still alive.
   +----------------+
   |  type (int16)  |
   +----------------+
-
 ```
 
-#### Error message
+### Error message
 
 Error messages are used to signal an unrecoverable error happened and thus the stream must come to an end.
 
@@ -110,7 +106,6 @@ Error messages are used to signal an unrecoverable error happened and thus the s
   +----------------+----------------+
   |  type (int16)  |  code (int16)  |
   +----------------+----------------+
-
 ```
 
 `code` contains an error code adding precision about what happened. The value for an unknwon error is `0`.
