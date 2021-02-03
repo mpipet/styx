@@ -1,37 +1,53 @@
 Install
 -------
 
-Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+### Downloading a release build
 
-Running Styx
-------------
+Download release build
+
+```bash
+$ TODO Download release 
+```
+
+### Building from source
+
+Building from source requires golang and git installed on the target system. 
+
+Clone repository
+
+```bash
+$ TODO clone public repository
+```
+
+Build
+```bash
+$ TODO go build
+```
+
+### Running Styx
 
 Setup data directory
 
 ```bash
-mkdir data
+$ mkdir data
 ```
 
 Run styx
 
 ```bash
-go run cmd/styx-server/main.go --config ./config.toml --log-level TRACE
+$ styx-server --config ./config.toml --log-level TRACE
 ```
 
-Running Styx with Docker
-------------------------
+### Running Styx with Docker
 
-Build:
+Run
+
 ```bash
-docker build -t styx .
+$ docker run -it --rm -p 8000:8000 --name styx styx
 ```
 
-Run:
-```bash
-docker run -it --rm -p 8000:8000 --name styx styx
-```
+Run using host data directory
 
-Run using host data directory:
 ```bash
-docker run -it --rm -p 8000:8000 --mount type=bind,source="$(pwd)"/data,target=/data --name styx styx
+$ docker run -it --rm -p 8000:8000 --mount type=bind,source="$(pwd)"/data,target=/data --name styx styx
 ```

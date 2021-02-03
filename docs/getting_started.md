@@ -1,11 +1,39 @@
 Getting started
 ---------------
 
-Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+### Quick Install
 
-### TODO
+```bash
 
-- Download latest release
-- run Styx
-- Write record with curl
-- Read record with curl
+```
+
+### Run Styx
+
+```bash
+
+```
+
+### Create a log
+```bash
+$ styx logs create myLog
+name:                   myLog
+status:                 ok
+record_count:           0
+file_size:              0
+start_position:         0
+end_position:           0
+```
+
+### Write records
+```bash
+$ styx logs write myLog
+>my first record
+>my second record
+```
+
+### Read records
+```bash
+$ styx logs read myLog
+my first record
+my second record
+```
