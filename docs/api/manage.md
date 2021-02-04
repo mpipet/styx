@@ -6,7 +6,7 @@ Manage logs
 Create a new log
 
 ```bash
-curl -XPOST 'http://localhost:8000/logs' -d name=myLog
+$ curl -XPOST 'http://localhost:8000/logs' -d name=myLog
 ```
 
 Response
@@ -41,7 +41,7 @@ List of all available form parameters:
 Retrieves the details of all Styx logs
 
 ```bash
-curl -XGET 'http://localhost:8000/logs'
+$ curl -XGET 'http://localhost:8000/logs'
 ```
 
 Response
@@ -72,7 +72,7 @@ Response
 Retrieves the details of a log
 
 ```bash
-curl -XGET 'http://localhost:8000/logs/myLog'
+$ curl -XGET 'http://localhost:8000/logs/myLog'
 ```
 
 Response
@@ -93,7 +93,7 @@ Response
 Permanently delete a log and its data
 
 ```bash
-curl -XDELETE 'http://localhost:8000/logs/myLog'
+$ curl -XDELETE 'http://localhost:8000/logs/myLog'
 ```
 
 ### Backup log
@@ -101,7 +101,7 @@ curl -XDELETE 'http://localhost:8000/logs/myLog'
 Download a backup of the log
 
 ```bash
-curl -XGET 'http://localhost:8000/logs/myLog/backup' -o myLogBackup.tar.gz
+$ curl -XGET 'http://localhost:8000/logs/myLog/backup' -o myLogBackup.tar.gz
 ```
 
 ### Restore log
@@ -109,5 +109,5 @@ curl -XGET 'http://localhost:8000/logs/myLog/backup' -o myLogBackup.tar.gz
 Imports a previously backed up log archive
 
 ```bash
-curl -XPOST 'http://localhost:8000/logs/restore?name=myRestoredLog' --data-binary '@myLogBackup.tar.gz'  
+$ curl -XPOST 'http://localhost:8000/logs/restore?name=myRestoredLog' --data-binary '@myLogBackup.tar.gz'  
 ```

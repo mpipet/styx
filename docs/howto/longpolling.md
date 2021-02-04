@@ -124,7 +124,7 @@ Pyhon
   position = 0
 
   while True:
-    endpoint = 'http://localhost:8000/logs/myLog/records?position='+ str(position) +'&follow=true'
+    endpoint = 'http://localhost:8000/logs/myLog/records?position='+ str(position) +'&count=100&follow=true'
 
     res = requests.get(endpoint, headers=headers)
 
@@ -142,7 +142,7 @@ Go
   position := int64(0)
 
   for {
-    endpoint := "http://localhost:8000/logs/myLog/records?position=" + strconv.FormatInt(position, 10) + "&follow=true"
+    endpoint := "http://localhost:8000/logs/myLog/records?position=" + strconv.FormatInt(position, 10) + "&count=100&follow=true"
 
     req, err := http.NewRequest(http.MethodGet, endpoint, nil)
     if err != nil {

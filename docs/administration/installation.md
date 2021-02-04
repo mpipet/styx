@@ -16,12 +16,13 @@ Building from source requires golang and git installed on the target system.
 Clone repository
 
 ```bash
-$ TODO clone public repository
+$ TODO git clone public repository
 ```
 
 Build
 ```bash
-$ TODO go build
+$ cd styx
+$ go build -o styx-server cmd/styx-server/main.go 
 ```
 
 ### Running Styx

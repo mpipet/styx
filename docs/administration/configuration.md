@@ -35,7 +35,7 @@ $ styx-server --config /etc/styx/config.toml
 
 **[metrics.statsd]**
 
-| Setting   | Description               |
-|-----------|---------------------------|
-| `address` | Address of statsd server. |
-| `prefix`  | Statsd metrics prefix.    |
+| Setting   | Description                 |
+|-----------|-----------------------------|
+| `address` | Address of statsd server.   |
+| `prefix`  | Statsd log metrics prefix.  |
