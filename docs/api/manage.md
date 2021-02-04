@@ -1,7 +1,6 @@
 Manage logs
 -----------
 
-
 ### Create log
 
 Create a new log
