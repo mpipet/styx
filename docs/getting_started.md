@@ -4,19 +4,21 @@ Getting started
 ### Quick Install
 
 ```bash
-$ TODO quickest Styx install
+$ TODO git clone
+$ cd styx
+$ docker build -t styx .
 ```
 
 ### Run Styx
 
 ```bash
-$ TODO quickest Styx run
+$ docker run -it --rm -p 8000:8000 --name styx styx
 ```
 
 ### Create a log
 
 ```bash
-$ styx logs create myLog
+$ docker exec styx styx logs create myLog
 name:                   myLog
 status:                 ok
 record_count:           0
@@ -28,7 +30,7 @@ end_position:           0
 ### Write records
 
 ```bash
-$ styx logs write myLog
+$ docker exec -it styx styx logs write myLog
 >my first record
 >my second record
 ```
@@ -36,7 +38,7 @@ $ styx logs write myLog
 ### Read records
 
 ```bash
-$ styx logs read myLog
+$ docker exec styx styx logs read myLog
 my first record
 my second record
 ```

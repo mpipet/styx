@@ -41,6 +41,12 @@ $ styx-server --config ./config.toml --log-level TRACE
 
 ### Running Styx with Docker
 
+Build Image
+
+```bash
+$ docker build -t styx .
+```
+
 Run
 
 ```bash
