@@ -1,4 +1,177 @@
 Command Line Interface
 ----------------------
 
-Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+Styx command line interface allows you to interact with Styx logs.  
+To display this usage, either run `styx logs` or `styx logs --help`.
+
+
+```bash
+$ styx logs --help
+Usage: styx logs COMMAND
+
+Manage logs
+
+Commands:
+        list            List available logs
+        create          Create a new log
+        get             Show log details
+        delete          Delete a log
+        backup          Backup a log
+        restore         Restore a log
+        write           Write records to a log
+        read            Read records from a log
+
+Global Options:
+        --format string                 Output format [text|json] (default "text")
+        --host string                   Server to connect to (default "http://localhost:8000")
+        --help                          Display help
+```
+
+## List logs
+
+### Usage
+
+```bash
+$ styx logs list --help
+
+Usage: styx logs list [OPTIONS]
+
+List available logs
+
+Global Options:
+        --watch                 Display and update informations about logs
+        --format string         Output format [text|json] (default "text")
+        --host string           Server to connect to (default "http://localhost:8000")
+        --help                  Display help
+```
+
+## Create log
+
+### Usage
+
+```bash
+$ styx logs create --help
+Usage: styx logs create NAME [OPTIONS]
+
+Create a new log
+
+Options:
+        --max-record-size bytes         Maximum record size
+        --index-after-size bytes        Write a segment index entry after every size
+        --segment-max-count records     Create a new segment when current segment exceeds this number of records
+        --segment-max-size bytes        Create a new segment when current segment exceeds this size
+        --segment-max-age seconds       Create a new segment when current segment exceeds this age
+        --log-max-count records         Expire oldest segment when log exceeds this number of records
+        --log-max-size bytes            Expire oldest segment when log exceeds this size
+        --log-max-age seconds           Expire oldest segment when log exceeds this age
+
+Global Options:
+        --format string                 Output format [text|json] (default "text")
+        --host string                   Server to connect to (default "http://localhost:8000")
+        --help                          Display help
+```
+
+## Get log
+
+### Usage
+
+```bash
+$ styx logs get --help
+Usage: styx logs get NAME [OPTIONS]
+
+Show log details
+
+Global Options:
+        --format string         Output format [text|json] (default "text")
+        --host string           Server to connect to (default "http://localhost:8000")
+        --help                  Display help
+```
+
+## Delete log
+
+### Usage
+
+```bash
+$ styx logs delete --help
+Usage: styx logs delete NAME [OPTIONS]
+
+Delete a log
+
+Global Options:
+        --host string   Server to connect to (default "http://localhost:8000")
+        --help          Display help
+```
+
+## Backup log
+
+### Usage
+
+```bash
+$ styx logs backup --help
+Usage: styx logs backup NAME [OPTIONS]
+
+Backup log
+
+Global Options:
+        --host string           Server to connect to (default "http://localhost:8000")
+        --help                  Display help
+```
+
+## Restore log
+
+### Usage
+
+```bash
+$ styx logs restore --help
+Usage: styx logs restore NAME [OPTIONS]
+
+Restore log
+
+Global Options:
+        --host string           Server to connect to (default "http://localhost:8000")
+        --help                  Display help
+```
+
+## Write to a log
+
+### Usage
+
+```bash
+$ styx logs write --help
+Usage: styx logs write NAME [OPTIONS]
+
+Write to log, input is expected to be line delimited record payloads
+
+Options:
+        --unbuffered    Do not buffer writes
+        --binary        Process input as binary records
+        --line-ending   Line end [cr|lf|crlf] for non binary record output
+
+Global Options:
+        --host string   Server to connect to (default "http://localhost:8000")
+        --help          Display help
+```
+
+## Read from a log
+
+### Usage
+
+```bash
+$ styx logs read --help
+Usage: styx logs read NAME [OPTIONS]
+
+Read from log and output line delimited record payloads
+
+Options:
+        --position int          Position to start reading from (default 0)
+        --whence string         Reference from which position is computed [origin|start|end] (default "start")
+        --count int             Maximum count of records to read (cannot be used in association with --follow)
+        --follow                Wait for new records when reaching end of stream
+        --unbuffered            Do not buffer read
+        --binary                Output binary records
+        --line-ending           Line end [cr|lf|crlf] for non binary record output
+
+Global Options:
+        --host string           Server to connect to (default "http://localhost:8000")
+        --help                  Display help
+```
