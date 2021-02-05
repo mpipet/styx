@@ -45,6 +45,15 @@ Global Options:
         --help                  Display help
 ```
 
+### Example
+
+```bash
+$ styx logs list
+NAME            STATUS          RECORD COUNT            FILE SIZE               START POSITION          END POSITION
+myLog           ok              38                      557                     0                       38
+test            ok              3000075                 1524000942              0                       3000075
+```
+
 ## Create log
 
 ### Usage
@@ -71,6 +80,18 @@ Global Options:
         --help                          Display help
 ```
 
+### Example
+
+```bash
+$ styx logs create myLog
+name:                   myLog
+status:                 ok
+record_count:           0
+file_size:              0
+start_position:         0
+end_position:           0
+```
+
 ## Get log
 
 ### Usage
@@ -85,6 +106,18 @@ Global Options:
         --format string         Output format [text|json] (default "text")
         --host string           Server to connect to (default "http://localhost:8000")
         --help                  Display help
+```
+
+### Example
+
+```bash
+$ styx logs get myLog
+name:                   myLog
+status:                 ok
+record_count:           38
+file_size:              557
+start_position:         0
+end_position:           38
 ```
 
 ## Delete log
@@ -102,6 +135,12 @@ Global Options:
         --help          Display help
 ```
 
+### Example
+
+```bash
+$ styx logs delete myLog
+```
+
 ## Backup log
 
 ### Usage
@@ -117,6 +156,12 @@ Global Options:
         --help                  Display help
 ```
 
+### Example
+
+```bash
+$ styx logs backup myLog >> myLog.backup.tar.gz
+```
+
 ## Restore log
 
 ### Usage
@@ -130,6 +175,12 @@ Restore log
 Global Options:
         --host string           Server to connect to (default "http://localhost:8000")
         --help                  Display help
+```
+
+### Example
+
+```bash
+$ styx logs restore restoredLog < myLog.backup.tar.gz
 ```
 
 ## Write to a log
@@ -150,6 +201,14 @@ Options:
 Global Options:
         --host string   Server to connect to (default "http://localhost:8000")
         --help          Display help
+```
+
+### Example
+
+```bash
+$ styx logs write myLog
+>my first record
+>my second record
 ```
 
 ## Read from a log
@@ -174,4 +233,12 @@ Options:
 Global Options:
         --host string           Server to connect to (default "http://localhost:8000")
         --help                  Display help
+```
+
+### Example
+
+```bash
+$ styx logs read myLog
+my first record
+my second record
 ```
