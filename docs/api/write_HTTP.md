@@ -28,6 +28,12 @@ Status: 200 OK
 
 #### Write a record
 
+**Curl**
+
+```bash
+$ curl -XPOST 'http://localhost:8000/logs/myLog/records' -d 'my record content'
+```
+
 **Python** (_Requires [requests](https://pypi.org/project/requests/) package._)
 
 ```python
@@ -54,6 +60,14 @@ Status: 200 OK
 ```
 
 #### Write line delimited records
+
+**Curl**
+
+```bash
+$ curl -XPOST 'http://localhost:8000/logs/myLog/records' \
+  -H 'Content-Type: application/ld+text;line-ending=lf' \
+  -d $'my record content\nmy record content\n'
+```
 
 **Python** (_Requires [requests](https://pypi.org/project/requests/) package._)
 

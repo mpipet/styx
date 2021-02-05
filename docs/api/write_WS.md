@@ -23,7 +23,12 @@ Status: 101 Switching protocol
 
 ### Code samples
 
-**Python** (_Requires [requests](https://pypi.org/project/requests/) package._)
+**Wsdump** (_Requires [websocket-client](https://pypi.org/project/websocket-client-py3/) package._)
+```bash
+$ echo 'my record content' | wsdump.py ws://localhost:8000/logs/myLog/records --headers 'X-HTTP-Method-Override: POST'
+```
+
+**Python** (_Requires [websocket-client](https://pypi.org/project/websocket-client-py3/) package._)
 
 ```python
 endpoint = 'ws://localhost:8000/logs/myLog/records'

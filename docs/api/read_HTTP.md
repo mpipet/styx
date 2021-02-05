@@ -29,6 +29,12 @@ Response contains records formatted according to `Accept`header.
 
 #### Read the first available record
 
+**Curl**
+
+```bash
+$ curl -XGET 'http://localhost:8000/logs/myLog/records'
+```
+
 **Python** (_Requires [requests](https://pypi.org/project/requests/) package._)
 
 ```python
@@ -51,6 +57,13 @@ Response contains records formatted according to `Accept`header.
 ```
 
 #### Read first ten available records.
+
+**Curl**
+
+```bash
+$ curl -XGET 'http://localhost:8000/logs/myLog/records?whence=start&count=10' \
+  -H 'Accept: application/ld+text;line-ending=lf'
+```
 
 **Python** (_Requires [requests](https://pypi.org/project/requests/) package._)
 
