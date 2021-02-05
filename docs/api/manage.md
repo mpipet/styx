@@ -1,16 +1,39 @@
 Manage logs
 -----------
 
-### Create log
+## Create log
 
-Create a new log
+Create a new log.
+
+**POST** `/logs`
+
+### Params
+
+| Param                 | In    | Description                                                           | Default       |
+|---------------------  |------ |---------------------------------------------------------------------  |-------------- |
+| `name`  _required_    | form  | The log name.                                                         |               |
+| `max_record_size`     | form  | Max record size.                                                      | `1048576`     |
+| `index_after_size`    | form  | Allow creating an index entry every index_after_size bytes written.   | `1048576`     |
+| `segment_max_count`   | form  | Max number of records in a segment.                                   | `-1`          |
+| `segment_max_size`    | form  | Max size of a segment in bytes.                                       | `1073741824`  |
+| `segment_max_age`     | form  | Max age of a segment in seconds.                                      | `-1`          |
+| `log_max_count`       | form  | Max number of records in a log.                                       | `-1`          |
+| `log_max_size`        | form  | Max size of a log in bytes.                                           | `-1`          |
+| `log_max_age`         | form  | Max age of a log in seconds.                                          | `-1`          |
+
+### Code samples
+
+**Bash**
 
 ```bash
 $ curl -XPOST 'http://localhost:8000/logs' -d name=myLog
 ```
 
-**Response**
+### Response
 
+```
+Status: 200 OK
+```
 ```json
 {
   "name": "myLog",
@@ -22,30 +45,25 @@ $ curl -XPOST 'http://localhost:8000/logs' -d name=myLog
 }
 ```
 
-List of all available form parameters:
+## List logs
 
-| Param               | Description                                                         | Default      |
-|---------------------|---------------------------------------------------------------------|--------------|
-| `name`  _required_  | The log name.                                                       |              |
-| `max_record_size`   | Max record size.                                                    | `1048576`    |
-| `index_after_size`  | Allow creating an index entry every index_after_size bytes written. | `1048576`    |
-| `segment_max_count` | Max number of records in a segment.                                 | `-1`         |
-| `segment_max_size`  | Max size of a segment in bytes.                                     | `1073741824` |
-| `segment_max_age`   | Max age of a segment in seconds.                                    | `-1`         |
-| `log_max_count`     | Max number of records in a log.                                     | `-1`         |
-| `log_max_size`      | Max size of a log in bytes.                                         | `-1`         |
-| `log_max_age`       | Max age of a log in seconds.                                        | `-1`         |
+Retrieves the details of all Styx logs.
 
-### List logs
+**GET** `/logs`
 
-Retrieves the details of all Styx logs
+### Code samples
+
+**Bash**
 
 ```bash
 $ curl -XGET 'http://localhost:8000/logs'
 ```
 
-**Response**
+### Response
 
+```
+Status: 200 OK
+```
 ```json
 [
   {
@@ -67,16 +85,31 @@ $ curl -XGET 'http://localhost:8000/logs'
 ]
 ```
 
-### Get log by name
+## Get log by name
 
-Retrieves the details of a log
+Retrieves the details of a log.
+
+**GET** `/logs/{name}`
+
+### Params 
+
+| Name        | In      | Description                                                     | Default   |
+|------------ |-------  |---------------------------------------------------------------- |---------- |
+| `name`      | path    | Log name.                                                       |           |
+
+### Code samples
+
+**Bash**
 
 ```bash
 $ curl -XGET 'http://localhost:8000/logs/myLog'
 ```
 
-**Response**
+### Response
 
+```
+Status: 200 OK
+```
 ```json
 {
   "name": "myLog",
@@ -88,26 +121,83 @@ $ curl -XGET 'http://localhost:8000/logs/myLog'
 }
 ```
 
-### Delete log
+## Delete log
 
-Permanently delete a log and its data
+Permanently delete a log and its data.
+
+**DELETE** `/logs/{name}`
+
+### Params 
+
+| Name        | In      | Description                                                     | Default   |
+|------------ |-------  |---------------------------------------------------------------- |---------- |
+| `name`      | path    | Log name.                                                       |           |
+
+### Code samples
+
+**Bash**
 
 ```bash
 $ curl -XDELETE 'http://localhost:8000/logs/myLog'
 ```
 
-### Backup log
+### Response
 
-Download a backup of the log
+```
+Status: 200 OK
+```
+
+## Backup log
+
+Download a backup of the log.
+
+**GET** `/logs/{name}/backup`
+
+### Params 
+
+| Name        | In      | Description                                                     | Default   |
+|------------ |-------  |---------------------------------------------------------------- |---------- |
+| `name`      | path    | Log name.                                                       |           |
+
+### Code samples
+
+**Bash**
 
 ```bash
 $ curl -XGET 'http://localhost:8000/logs/myLog/backup' -o myLogBackup.tar.gz
 ```
 
-### Restore log
+### Response
 
-Imports a previously backed up log archive
+```
+Status: 200 OK
+```
+
+Response body contains binary backup archive.
+
+## Restore log
+
+Imports a previously backed up log archive.
+
+**POST** `/logs/restore`
+
+### Params 
+
+| Name                | In       | Description                                                     | Default   |
+|-------------------- |--------- |---------------------------------------------------------------- |---------- |
+| `name` _Required_   | query    | Log name.                                                       |           |
+|                     | body     | Binay backup archive.                                           |           |
+
+### Code samples
+
+**Bash**
 
 ```bash
 $ curl -XPOST 'http://localhost:8000/logs/restore?name=myRestoredLog' --data-binary '@myLogBackup.tar.gz'  
+```
+
+### Response
+
+```
+Status: 200 OK
 ```
