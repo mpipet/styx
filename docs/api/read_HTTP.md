@@ -1,22 +1,35 @@
 Read using HTTP
 ---------------
 
-### Read a record
+Read records using HTTP protocol.
 
-Read the first available record from `myLog`.
+**GET** `/logs/{name}/records`  
 
-Python
+### Params 
 
-_Requires `requests` package._
+| Name             	| In     	| Description                                                                                                                  	| Default                    	|
+|------------------	|--------	|------------------------------------------------------------------------------------------------------------------------------	|----------------------------	|
+| `name`           	| path   	| Log name.                                                                                                                    	|                            	|
+| `whence`         	| query  	| Allowed values are `origin`, `start` and `end`.                                                                              	| `origin`                   	|
+| `position`       	| query  	| Whence relative position from which the records are read from.                                                               	| `0`                        	|
+| `count`          	| query  	| Limits the number of records to read, `-1` means no limitation.<br>Not available with `application/octet-stream` media type. 	| `-1`                       	|
+| `follow`         	| query  	| Read will block until new records are written to the log.<br>Not available with `application/octet-stream` media type.       	| `false`                    	|
+| `Accept`         	| header 	| See [Media-Types](/docs/api/media_types.md) for allowed values.                                                              	| `application/octet-stream` 	|
+| `X-Styx-Timeout` 	| header 	| Number of seconds before timing out when waiting for new records with the `follow` query param.                              	|                            	|
+
+### Codes samples
+
+#### Read the first available record
+
+**Python** (_Requires [requests](https://pypi.org/project/requests/) package._)
+
 ```python
   endpoint = 'http://localhost:8000/logs/myLog/records?whence=start'
 
   res = requests.get(endpoint)
-
-  print(res.text)
 ```
 
-Go
+**Go**
 
 ```golang
   client := &http.Client{}
@@ -29,21 +42,10 @@ Go
   }
 ```
 
-Available query parameters
+#### Read first ten available records.
 
-| Param      | Description                                                                                                                                                                                                | Default  |
-|------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------|
-| `whence`   | Allowed values are:<br>`origin` the equivalent to the start position of the log at creation time.<br>`start` the first available position.<br>`end` the last available position.                           | `origin` |
-| `position` | Whence relative position from wich the records are read from.<br>Negative values are allowed.<br>Example: With `whence=end` and `position=-10`, read will start from 10 records before the end of the log. | `0`      |
+**Python** (_Requires [requests](https://pypi.org/project/requests/) package._)
 
-
-### Read line delimited records
-
-Read first ten available records from `myLog` using line delimitation.
-
-Python
-
-_Requires `requests` package._
 ```python
   endpoint = 'http://localhost:8000/logs/myLog/records?whence=start&count=10'
 
@@ -53,7 +55,7 @@ _Requires `requests` package._
   res = requests.get(endpoint, headers=headers)
 ```
 
-Go
+**Go**
 
 ```golang
   client := &http.Client{}
@@ -72,15 +74,3 @@ Go
     log.Fatal(err)
   }
 ```
-
-Available query parameters
-
-| Param      | Description                                                                                                                                                                                                | Default  |
-|------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------|
-| `whence`   | Allowed values are:<br>`origin` the equivalent to the start position of the log at creation time.<br>`start` the first available position.<br>`end` the last available position.                           | `origin` |
-| `position` | Whence relative position from wich the records are read from.<br>Negative values are allowed.<br>Example: With `whence=end` and `position=-10`, read will start from 10 records before the end of the log. | `0`      |
-| `count`    | Limits the number of records to read, `-1` means no limitation.                                                                                                                                            | `-1`     |
-| `follow`   | Read will block until new records are written to the log.<br>Since waiting forever is an unwanted behavior when using HTTP, `X-Styx-Timeout` header should be set.                                         | `false`  |
-
-
-See [Media-Types](/docs/api/media_types.md) for details about `application/ld+text`.

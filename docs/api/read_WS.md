@@ -1,13 +1,25 @@
 Read with Websocket
 -------------------
 
-### Read with websocket
+Read records using websocket protocol.
 
-Read all records from `myLog` and wait for more to be written using websocket.
+**GET** `/logs/{name}/records`
 
-Python
+Upgrade: websocket  
+Connection: Upgrade  
 
-_Requires `websocket` package._
+### Params 
+
+| Name       	| In    	| Description                                                    	| Default  	|
+|------------	|-------	|----------------------------------------------------------------	|----------	|
+| `name`     	| path  	| Log name.                                                      	|          	|
+| `whence`   	| query 	| Allowed values are `origin`, `start` and `end`.                	| `origin` 	|
+| `position` 	| query 	| Whence relative position from which the records are read from. 	| `0`      	|
+
+
+### Code samples
+
+**Python** (_Requires [requests](https://pypi.org/project/requests/) package._)
 
 ```python
 endpoint = 'ws://localhost:8000/logs/myLog/records'
@@ -17,9 +29,7 @@ while True:
   record = ws.recv()
 ```
 
-Go
-
-_Requires `github.com/gorilla/websocket` package._
+**Go** (_Requires [github.com/gorilla/websocket](http://github.com/gorilla/websocket) package._)
 
 ```golang
   dialer := websocket.Dialer{}

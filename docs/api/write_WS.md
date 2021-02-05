@@ -1,13 +1,24 @@
 Write with Websocket
 --------------------
 
-### Write records with websocket
+Write records using Websocket protocol.
 
-Write ten records to `myLog` using websocket.
+**GET** `/logs/{name}/records`  
 
-Python
+Upgrade: websocket  
+Connection: Upgrade  
+X-HTTP-Method-Override: POST
 
-_Requires `websocket` package._
+### Params 
+
+| Name           	| In     	| Description                                                     	| Default                    	|
+|----------------	|--------	|-----------------------------------------------------------------	|----------------------------	|
+| `name`         	| path   	| Log name.                                                       	|                            	|
+
+
+### Code samples
+
+**Python** (_Requires [requests](https://pypi.org/project/requests/) package._)
 
 ```python
 endpoint = 'ws://localhost:8000/logs/myLog/records'
@@ -20,14 +31,12 @@ for i in range(10):
   ws.send(record)
 ```
 
-Go
-
-_Requires `github.com/gorilla/websocket` package._
+**Go** (_Requires [github.com/gorilla/websocket](http://github.com/gorilla/websocket) package._)
 
 ```golang
   dialer := websocket.Dialer{}
 
-  endpoint := "ws://localhost:8000/logs/myLog/records?whence=start&position=0"
+  endpoint := "ws://localhost:8000/logs/myLog/records"
 
   headers := http.Header{}
   headers.Set("Origin", "localhost")

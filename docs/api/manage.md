@@ -9,7 +9,7 @@ Create a new log
 $ curl -XPOST 'http://localhost:8000/logs' -d name=myLog
 ```
 
-Response
+**Response**
 
 ```json
 {
@@ -44,7 +44,7 @@ Retrieves the details of all Styx logs
 $ curl -XGET 'http://localhost:8000/logs'
 ```
 
-Response
+**Response**
 
 ```json
 [
@@ -75,7 +75,7 @@ Retrieves the details of a log
 $ curl -XGET 'http://localhost:8000/logs/myLog'
 ```
 
-Response
+**Response**
 
 ```json
 {

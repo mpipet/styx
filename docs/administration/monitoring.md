@@ -26,7 +26,7 @@ log_record_count{log="myLog"} 60
 
 Log Metrics can also be reported to a Statsd server when enabled in the Styx [config](./configuration.md).
 
-Log name are set into the metric path as follow.
+Log names are added to the metric path as follow.
 
 ```
 log.myLog.file.size487|g

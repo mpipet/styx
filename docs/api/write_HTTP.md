@@ -1,13 +1,22 @@
 Write with HTTP
 ---------------
 
-### Write a record
+Write records using HTTP protocol.
 
-Write one record to `myLog`.
+**POST** `/logs/{name}/records`  
 
-Python
+### Params
 
-_Requires `requests` package._
+| Name           	| In     	| Description                                                     	| Default                    	|
+|----------------	|--------	|-----------------------------------------------------------------	|----------------------------	|
+| `name`         	| path   	| Log name.                                                       	|                            	|
+| `Content-Type` 	| header 	| See [Media-Types](/docs/api/media_types.md) for allowed values. 	| `application/octet-stream` 	|
+
+### Codes samples
+
+#### Write a record
+
+**Python** (_Requires [requests](https://pypi.org/project/requests/) package._)
 
 ```python
   endpoint = 'http://localhost:8000/logs/myLog/records'
@@ -17,7 +26,7 @@ _Requires `requests` package._
   res = requests.post(endpoint, data=record)
 ```
 
-Go
+**Go**
 
 ```golang
   endpoint := "http://localhost:8000/logs/myLog/records"
@@ -32,13 +41,9 @@ Go
   }
 ```
 
-### Write line delimited records
+#### Write line delimited records
 
-Write ten line delimited records to `myLog`.
-
-Python
-
-_Requires `requests` package._
+**Python** (_Requires [requests](https://pypi.org/project/requests/) package._)
 
 ```python
   records = b''
@@ -54,7 +59,7 @@ _Requires `requests` package._
   requests.post(endpoint, headers=headers, data=records)
 ```
 
-Go
+**Go**
 
 ```golang
   client := &http.Client{}
