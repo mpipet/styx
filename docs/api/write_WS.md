@@ -31,9 +31,12 @@ $ echo 'my record content' | wsdump.py ws://localhost:8000/logs/myLog/records --
 **Python** (_Requires [websocket-client](https://pypi.org/project/websocket-client-py3/) package._)
 
 ```python
-endpoint = 'ws://localhost:8000/logs/myLog/records'
+import websocket
 
-ws = websocket.create_connection(endpoint, header=['X-HTTP-Method-Override: POST'])
+ws = websocket.create_connection(
+  'ws://localhost:8000/logs/myLog/records', 
+  header=['X-HTTP-Method-Override: POST']
+)
 
 record = 'my record content'
 
@@ -44,31 +47,35 @@ for i in range(10):
 **Go** (_Requires [github.com/gorilla/websocket](http://github.com/gorilla/websocket) package._)
 
 ```golang
-  dialer := websocket.Dialer{}
+import (
+  "log"
+  "net/http"
+  "github.com/gorilla/websocket"
+)
 
-  endpoint := "ws://localhost:8000/logs/myLog/records"
+dialer := websocket.Dialer{}
 
-  headers := http.Header{}
-  headers.Set("Origin", "localhost")
-  headers.Set("X-HTTP-Method-Override", "POST")
+headers := http.Header{}
+headers.Set("Origin", "localhost")
+headers.Set("X-HTTP-Method-Override", "POST")
 
-  conn, resp, err := dialer.Dial(endpoint, headers)
-  if err != nil {
-    log.Fatal(err)
-  }
+conn, resp, err := dialer.Dial("ws://localhost:8000/logs/myLog/records", headers)
+if err != nil {
+  log.Fatal(err)
+}
 
-  if resp.StatusCode != http.StatusSwitchingProtocols {
-    log.Fatal("an error occured")
-  }
+if resp.StatusCode != http.StatusSwitchingProtocols {
+  log.Fatal("an error occured")
+}
 
-  defer conn.Close()
+defer conn.Close()
 
-  record := []byte("my record content")
+record := []byte("my record content")
 
-  for i := 0; i < 10; i++ {
-      err = conn.WriteMessage(websocket.BinaryMessage, record)
-      if err != nil {
-          log.Fatal(err)
-      }
-  }
+for i := 0; i < 10; i++ {
+    err = conn.WriteMessage(websocket.BinaryMessage, record)
+    if err != nil {
+        log.Fatal(err)
+    }
+}
 ```

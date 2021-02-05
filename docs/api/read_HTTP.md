@@ -32,28 +32,47 @@ Response contains records formatted according to `Accept`header.
 **Curl**
 
 ```bash
-$ curl -XGET 'http://localhost:8000/logs/myLog/records'
+$ curl -XGET 'http://localhost:8000/logs/myLog/records&whence=start'
 ```
 
 **Python** (_Requires [requests](https://pypi.org/project/requests/) package._)
 
 ```python
-  endpoint = 'http://localhost:8000/logs/myLog/records?whence=start'
+import requests
 
-  res = requests.get(endpoint)
+res = requests.get(
+  'http://localhost:8000/logs/myLog/records',
+  params={
+    'whence': 'start'
+  }
+)
+
+print(res.text)
 ```
 
 **Go**
 
 ```golang
-  client := &http.Client{}
+import (
+  "io/ioutil"
+  "fmt"
+  "log"
+  "net/http"
+)
 
-  endpoint := "http://localhost:8000/logs/myLog/records?whence=start"
+client := &http.Client{}
 
-  res, err := client.Get(endpoint)
-  if err != nil {
-    log.Fatal(err)
-  }
+res, err := client.Get("http://localhost:8000/logs/myLog/records?whence=start")
+if err != nil {
+  log.Fatal(err)
+}
+
+record, err := ioutil.ReadAll(res.Body)
+if err != nil {
+  log.Fatal(err)
+}
+
+fmt.Println(record)
 ```
 
 #### Read first ten available records.
@@ -68,30 +87,46 @@ $ curl -XGET 'http://localhost:8000/logs/myLog/records?whence=start&count=10' \
 **Python** (_Requires [requests](https://pypi.org/project/requests/) package._)
 
 ```python
-  endpoint = 'http://localhost:8000/logs/myLog/records?whence=start&count=10'
+import requests
 
-  headers = {
+res = requests.get(
+  'http://localhost:8000/logs/myLog/records',
+  params={
+    'whence': 'start',
+    'count': 10
+  },
+  headers={
     'Accept': 'application/ld+text;line-ending=lf'
   }
-  res = requests.get(endpoint, headers=headers)
+)
+
+for record in res.text.iter_lines():
+  print(record)
 ```
 
 **Go**
 
 ```golang
-  client := &http.Client{}
+import (
+  "io"
+  "log"
+  "net/http"  
+  "os"
+)
 
-  endpoint := "http://localhost:8000/logs/myLog/records?whence=start&count=10"
+client := &http.Client{}
 
-  req, err := http.NewRequest(http.MethodGet, endpoint, nil)
-  if err != nil {
-    log.Fatal(err)
-  }
+req, err := http.NewRequest(http.MethodGet, "http://localhost:8000/logs/myLog/records?whence=start&count=10", nil)
+if err != nil {
+  log.Fatal(err)
+}
 
-  req.Header.Add("Accept", "application/ld+text;line-ending=lf")
+req.Header.Add("Accept", "application/ld+text;line-ending=lf")
 
-  res, err := client.Do(req)
-  if err != nil {
-    log.Fatal(err)
-  }
+res, err := client.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
+
+io.Copy(os.Stdout, res.Body)
 ```

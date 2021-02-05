@@ -37,26 +37,25 @@ $ curl -XPOST 'http://localhost:8000/logs/myLog/records' -d 'my record content'
 **Python** (_Requires [requests](https://pypi.org/project/requests/) package._)
 
 ```python
-  endpoint = 'http://localhost:8000/logs/myLog/records'
+import requests
 
-  record = bytes('my record content', 'utf-8')
-
-  res = requests.post(endpoint, data=record)
+requests.post('http://localhost:8000/logs/myLog/records', data=b'my record content')
 ```
 
 **Go**
 
 ```golang
-  endpoint := "http://localhost:8000/logs/myLog/records"
+import (
+  "bytes"
+  "net/http"
+)
 
-  client := &http.Client{}
-
-  record := []byte("my record content")
-
-  res, err := client.Post(endpoint, "application/octet-stream", bytes.NewReader(record))
-  if err != nil {
-    log.Fatal(err)
-  }
+client := &http.Client{}
+client.Post(
+  "http://localhost:8000/logs/myLog/records", 
+  "application/octet-stream", 
+  bytes.NewReader([]byte("my record content")),
+)
 ```
 
 #### Write line delimited records
@@ -72,35 +71,32 @@ $ curl -XPOST 'http://localhost:8000/logs/myLog/records' \
 **Python** (_Requires [requests](https://pypi.org/project/requests/) package._)
 
 ```python
-  records = b''
-  for i in range(10):
-    records += bytes('my record content\n', 'utf-8')
+import requests
 
-  endpoint = 'http://localhost:8000/logs/myLog/records'
-
-  headers = {
+requests.post(
+  'http://localhost:8000/logs/myLog/records',
+  headers={
     'Content-Type': 'application/ld+text;line-ending=lf'
-  }
-
-  requests.post(endpoint, headers=headers, data=records)
+  },
+  data=b''.join([b'my record content\n' for i in range(10)])
+)
 ```
 
 **Go**
 
 ```golang
-  client := &http.Client{}
+import (
+  "bytes"
+  "net/http"
+  "string"
+)
 
-  buf := bytes.NewBuffer([]byte{})
-  record := []byte("my record content\n")
+records := strings.Repeat("my record content\n", 10)
 
-  for i := 0; i < 10; i++ {
-    buf.Write(record)
-  }
-
-  endpoint := "http://localhost:8000/logs/myLog/records"
-
-  res, err := client.Post(endpoint, "application/ld+text;line-ending=lf", buf)
-  if err != nil {
-    log.Fatal(err)
-  }
+client := &http.Client{}
+client.Post(
+  "http://localhost:8000/logs/myLog/records",
+  "application/ld+text;line-ending=lf", 
+  bytes.NewReader([]byte(records)),
+)
 ```

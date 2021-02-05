@@ -8,32 +8,40 @@ Assuming you have never consumed any records from `myLog` and you want to retrie
 **Python** (_Requires [requests](https://pypi.org/project/requests/) package._)
 
 ```python
-endpoint = 'http://localhost:8000/logs/myLog/records?count=100'
+import request
 
-headers = {
-  'Accept': 'application/ld+text;line-ending=lf'
-}
-res = requests.get(endpoint, headers=headers)
+res = requests.get(
+  'http://localhost:8000/logs/myLog/records',
+  headers={
+    'Accept': 'application/ld+text;line-ending=lf',
+  },
+  params={
+    'count': '100'
+  }
+)
 ```
 
 **Go**
 
 ```golang
-  client := &http.Client{}
+import (
+  "log"
+  "net/http"
+)
 
-  endpoint := "http://localhost:8000/logs/myLog/records?count=100"
+client := &http.Client{}
 
-  req, err := http.NewRequest(http.MethodGet, endpoint, nil)
-  if err != nil {
-    log.Fatal(err)
-  }
+req, err := http.NewRequest(http.MethodGet, "http://localhost:8000/logs/myLog/records?count=100", nil)
+if err != nil {
+  log.Fatal(err)
+}
 
-  req.Header.Add("Accept", "application/ld+text;line-ending=lf")
+req.Header.Add("Accept", "application/ld+text;line-ending=lf")
 
-  res, err := client.Do(req)
-  if err != nil {
-    log.Fatal(err)
-  }
+res, err := client.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
 ```
 
 Assuming you effectively read 100 records, you have to increment the `position` query param with the number of processed records to consume the next ones.
@@ -41,32 +49,41 @@ Assuming you effectively read 100 records, you have to increment the `position` 
 **Python** (_Requires [requests](https://pypi.org/project/requests/) package._)
 
 ```python
-endpoint = 'http://localhost:8000/logs/myLog/records?position=100&count=100'
+import request
 
-headers = {
-  'Accept': 'application/ld+text;line-ending=lf'
-}
-res = requests.get(endpoint, headers=headers)
+res = requests.get(
+  'http://localhost:8000/logs/myLog/records',
+  headers={
+    'Accept': 'application/ld+text;line-ending=lf',
+  },
+  params={
+    'count': '100',
+    'position': '100',
+  }
+)
 ```
 
 **Go**
 
 ```golang
-  client := &http.Client{}
+import (
+  "log"
+  "net/http"
+)
 
-  endpoint := "http://localhost:8000/logs/myLog/records?position=100&count=100"
+client := &http.Client{}
 
-  req, err := http.NewRequest(http.MethodGet, endpoint, nil)
-  if err != nil {
-    log.Fatal(err)
-  }
+req, err := http.NewRequest(http.MethodGet, "http://localhost:8000/logs/myLog/records?position=100&count=100", nil)
+if err != nil {
+  log.Fatal(err)
+}
 
-  req.Header.Add("Accept", "application/ld+text;line-ending=lf")
+req.Header.Add("Accept", "application/ld+text;line-ending=lf")
 
-  res, err := client.Do(req)
-  if err != nil {
-    log.Fatal(err)
-  }
+res, err := client.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
 ```
 
 If there was only 50 records to read, a response will be returned with the remaining records.
@@ -75,34 +92,44 @@ Now you want to wait for new records to be written by adding the `follow` query 
 **Python** (_Requires [requests](https://pypi.org/project/requests/) package._)
 
 ```python
-endpoint = 'http://localhost:8000/logs/myLog/records?position=150&count=100&follow=true'
+import request
 
-headers = {
-  'Accept': 'application/ld+text;line-ending=lf'
-  'X-Styx-Timeout': '30',
-}
-res = requests.get(endpoint, headers=headers)
+res = requests.get(
+  'http://localhost:8000/logs/myLog/records',
+  headers={
+    'Accept': 'application/ld+text;line-ending=lf',
+    'X-Styx-Timeout': '30'
+  },
+  params={
+    'count': '100',
+    'position': '100',
+    'follow': 'true',
+  }
+)
 ```
 
 **Go**
 
 ```golang
-  client := &http.Client{}
+import (
+  "log"
+  "net/http"
+)
 
-  endpoint := "http://localhost:8000/logs/myLog/records?position=150&count=100&follow=true"
+client := &http.Client{}
 
-  req, err := http.NewRequest(http.MethodGet, endpoint, nil)
-  if err != nil {
-    log.Fatal(err)
-  }
+req, err := http.NewRequest(http.MethodGet, "http://localhost:8000/logs/myLog/records?position=150&count=100&follow=true", nil)
+if err != nil {
+  log.Fatal(err)
+}
 
-  req.Header.Add("Accept", "application/ld+text;line-ending=lf")
-  req.Header.Add("X-Styx-Timeout", "30")
+req.Header.Add("Accept", "application/ld+text;line-ending=lf")
+req.Header.Add("X-Styx-Timeout", "30")
 
-  res, err := client.Do(req)
-  if err != nil {
-    log.Fatal(err)
-  }
+res, err := client.Do(req)
+if err != nil {
+  log.Fatal(err)
+}
 ```
 
 The request will hang, up to the number of seconds specified by `X-Styx-Timeout` header, or until new records are written to the log.
@@ -114,60 +141,75 @@ Here is the full code example.
 **Python** (_Requires [requests](https://pypi.org/project/requests/) package._)
 
 ```python
-  headers = {
-    'Accept': 'application/ld+text;line-ending=lf',
-    'X-Styx-Timeout': '30'
-  }
+import requests
 
-  position = 0
+position = 0
+while True:
+  res = requests.get(
+    'http://localhost:8000/logs/myLog/records',
+    headers={
+      'Accept': 'application/ld+text;line-ending=lf',
+      'X-Styx-Timeout': '30'
+    },
+    params={
+      'count': '100',
+      'position': str(position),
+      'follow': 'true',
+    }
+  )
 
-  while True:
-    endpoint = 'http://localhost:8000/logs/myLog/records?position='+ str(position) +'&count=100&follow=true'
-
-    res = requests.get(endpoint, headers=headers)
-
-    for line in res.iter_lines():
-      print(line.decode('utf-8'))
-      
-      position += 1
+  for line in res.iter_lines():
+    print(line.decode('utf-8'))      
+    position += 1
 ```
 
 **Go**
 
 ```golang
-  client := &http.Client{}
+import (
+  "io"
+  "io/ioutil"
+  "log"
+  "net/http"
+  "os"
+  "string"
+)
 
-  position := int64(0)
+client := &http.Client{}
 
-  for {
-    endpoint := "http://localhost:8000/logs/myLog/records?position=" + strconv.FormatInt(position, 10) + "&count=100&follow=true"
+position := int64(0)
 
-    req, err := http.NewRequest(http.MethodGet, endpoint, nil)
-    if err != nil {
-      log.Fatal(err)
-    }
+for {
+  url := "http://localhost:8000/logs/myLog/records?position=" + strconv.FormatInt(position, 10) + "&count=100&follow=true"
 
-    req.Header.Set("Accept", "application/ld+text;line-ending=lf")
-    req.Header.Set("X-Styx-Timeout", "30")
-
-    res, err := client.Do(req)
-    if err != nil {
-      log.Fatal(err)
-    }
-
-    if res.StatusCode != http.StatusOK {
-      continue
-    }
-
-    scanner := bufio.NewScanner(res.Body)
-    scanner.Split(bufio.ScanLines)
-
-    for scanner.Scan() {
-      fmt.Println(scanner.Text())
-
-      position += 1
-    }
-
-    res.Body.Close()
+  req, err := http.NewRequest(http.MethodGet, url, nil)
+  if err != nil {
+    log.Fatal(err)
   }
+
+  req.Header.Set("Accept", "application/ld+text;line-ending=lf")
+  req.Header.Set("X-Styx-Timeout", "30")
+
+  res, err := client.Do(req)
+  if err != nil {
+    log.Fatal(err)
+  }
+
+  if res.StatusCode != http.StatusOK {
+    continue
+  }
+
+  buf, err := ioutil.ReadAll(res.Body)
+  if err != nil {
+    log.Fatal(err)
+  }
+
+  records := string.Split(string(buf), "\n")
+
+  position += int64(len(records))
+
+  io.Copy(os.Stdout, buf)
+
+  res.Body.Close()
+}
 ```

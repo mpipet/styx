@@ -2,7 +2,6 @@ Styx documentation
 ------------------
 
 - [Introduction](./introduction.md)  
-- [Design](./design.md)  
 - [Getting started](./getting_started.md) 
 - Administration
 	1. [Installation](./administration/installation.md)

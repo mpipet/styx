@@ -32,32 +32,38 @@ $ wsdump.py ws://localhost:8000/logs/myLog/records
 **Python** (_Requires [websocket-client](https://pypi.org/project/websocket-client-py3/) package._)
 
 ```python
-endpoint = 'ws://localhost:8000/logs/myLog/records'
-ws = websocket.create_connection(endpoint)
+import websocket
 
+ws = websocket.create_connection('ws://localhost:8000/logs/myLog/records')
 while True:
   record = ws.recv()
+  print(record)
 ```
 
 **Go** (_Requires [github.com/gorilla/websocket](http://github.com/gorilla/websocket) package._)
 
 ```golang
-  dialer := websocket.Dialer{}
+import (
+  "fmt"
+  "log"
+  "github.com/gorilla/websocket"
+)
 
-  endpoint := "ws://localhost:8000/logs/myLog/records?whence=start&position=0"
+dialer := websocket.Dialer{}
 
-  headers := http.Header{}
-  headers.Set("Origin", "localhost")
+headers := http.Header{}
+headers.Set("Origin", "localhost")
 
-  conn, res, err := dialer.Dial(endpoint, headers)
-  if err != nil {
-    log.Fatal(err)
-  }
+conn, res, err := dialer.Dial("ws://localhost:8000/logs/myLog/records?whence=start&position=0", headers)
+if err != nil {
+  log.Fatal(err)
+}
 
-  for {
-      _, record, err := conn.ReadMessage()
-      if err != nil {
-          log.Fatal(err)
-      }
-  }
+for {
+    _, record, err := conn.ReadMessage()
+    if err != nil {
+        log.Fatal(err)
+    }
+    fmt.Println(string(record))
+}
 ```
