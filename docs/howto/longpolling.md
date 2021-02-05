@@ -3,11 +3,9 @@ HTTP long polling
 
 Styx HTTP api provides means to read log records using long polling.
 
-_The following Python examples require `requests` package._
+Assuming you have never consumed any records from `myLog` and you want to retrieve its content in batchs of 100 line delimited records.
 
-Assuming you have never consumed any records from the `myLog` and you want to retrieves its content in batchs of 100 line delimited records.
-
-Python
+**Python** (_Requires [requests](https://pypi.org/project/requests/) package._)
 
 ```python
 endpoint = 'http://localhost:8000/logs/myLog/records?count=100'
@@ -18,7 +16,7 @@ headers = {
 res = requests.get(endpoint, headers=headers)
 ```
 
-Go
+**Go**
 
 ```golang
   client := &http.Client{}
@@ -38,9 +36,9 @@ Go
   }
 ```
 
-Assuming you effectively read 100 records, you have to increment the `position` query params with the number of processed records to consume the next ones.
+Assuming you effectively read 100 records, you have to increment the `position` query param with the number of processed records to consume the next ones.
 
-Python
+**Python** (_Requires [requests](https://pypi.org/project/requests/) package._)
 
 ```python
 endpoint = 'http://localhost:8000/logs/myLog/records?position=100&count=100'
@@ -51,7 +49,7 @@ headers = {
 res = requests.get(endpoint, headers=headers)
 ```
 
-Go
+**Go**
 
 ```golang
   client := &http.Client{}
@@ -74,7 +72,7 @@ Go
 If there was only 50 records to read, a response will be returned with the remaining records.
 Now you want to wait for new records to be written by adding the `follow` query param.
 
-Python
+**Python** (_Requires [requests](https://pypi.org/project/requests/) package._)
 
 ```python
 endpoint = 'http://localhost:8000/logs/myLog/records?position=150&count=100&follow=true'
@@ -86,7 +84,7 @@ headers = {
 res = requests.get(endpoint, headers=headers)
 ```
 
-Go
+**Go**
 
 ```golang
   client := &http.Client{}
@@ -113,7 +111,7 @@ As soon as new records are available these will be returned in the response, clo
 With an infinite loop you can easily create a long running consummer using long polling.   
 Here is the full code example.
 
-Pyhon
+**Python** (_Requires [requests](https://pypi.org/project/requests/) package._)
 
 ```python
   headers = {
@@ -134,7 +132,7 @@ Pyhon
       position += 1
 ```
 
-Go
+**Go**
 
 ```golang
   client := &http.Client{}
