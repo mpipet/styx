@@ -12,6 +12,18 @@ Write records using HTTP protocol.
 | `name`         	| path   	| Log name.                                                       	|                            	|
 | `Content-Type` 	| header 	| See [Media-Types](/docs/api/media_types.md) for allowed values. 	| `application/octet-stream` 	|
 
+### Response 
+
+```
+Status: 200 OK
+```
+```json
+{
+  "position": 20,
+  "count": 10,
+}
+```
+
 ### Codes samples
 
 #### Write a record

@@ -17,6 +17,14 @@ Read records using HTTP protocol.
 | `Accept`         	| header 	| See [Media-Types](/docs/api/media_types.md) for allowed values.                                                              	| `application/octet-stream` 	|
 | `X-Styx-Timeout` 	| header 	| Number of seconds before timing out when waiting for new records with the `follow` query param.                              	|                            	|
 
+### Response 
+
+```
+Status: 200 OK
+```
+
+Response contains records formatted according to `Accept`header.  
+
 ### Codes samples
 
 #### Read the first available record

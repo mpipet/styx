@@ -15,6 +15,11 @@ Connection: Upgrade
 | `name`           	| path   	| Log name.                                                                                           	|         	|
 | `X-Styx-Timeout` 	| header 	| The maximum amount of seconds the peer will keep the connection opened whithout receiving messages. 	|         	|
 
+### Response 
+
+```
+Status: 101 Switching protocol
+```
 
 ### Code samples
 

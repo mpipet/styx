@@ -15,6 +15,11 @@ X-HTTP-Method-Override: POST
 |----------------	|--------	|-----------------------------------------------------------------	|----------------------------	|
 | `name`         	| path   	| Log name.                                                       	|                            	|
 
+### Response 
+
+```
+Status: 101 Switching protocol
+```
 
 ### Code samples
 

@@ -16,6 +16,11 @@ Connection: Upgrade
 | `whence`   	| query 	| Allowed values are `origin`, `start` and `end`.                	| `origin` 	|
 | `position` 	| query 	| Whence relative position from which the records are read from. 	| `0`      	|
 
+### Response 
+
+```
+Status: 101 Switching protocol
+```
 
 ### Code samples
 
