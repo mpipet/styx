@@ -27,5 +27,5 @@ python3 main.py 100
 From another terminal, check that the log is filling with measures
 
 ```bash
-curl localhost:8000/logs
+curl localhost:8000/logs/measures
 ```
