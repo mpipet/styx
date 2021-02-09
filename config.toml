@@ -15,9 +15,7 @@ tcp_timeout = 100
 data_directory = "./data"
 write_buffer_size = 1048576
 
-[metrics]
+#[metrics.statsd]
 
-	#[metrics.statsd]
-
-	#address = "127.0.0.1:8125"
-	#prefix = "styx" 
+#address = "127.0.0.1:8125"
+#prefix = "styxou" 
