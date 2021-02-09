@@ -13,7 +13,7 @@ import request
 res = requests.get(
   'http://localhost:8000/logs/myLog/records',
   headers={
-    'Accept': 'application/ld+text;line-ending=lf',
+    'Accept': 'application/vnd.styx.line-delimited;line-ending=lf',
   },
   params={
     'count': '100'
@@ -36,7 +36,7 @@ if err != nil {
   log.Fatal(err)
 }
 
-req.Header.Add("Accept", "application/ld+text;line-ending=lf")
+req.Header.Add("Accept", "application/vnd.styx.line-delimited;line-ending=lf")
 
 res, err := client.Do(req)
 if err != nil {
@@ -54,7 +54,7 @@ import request
 res = requests.get(
   'http://localhost:8000/logs/myLog/records',
   headers={
-    'Accept': 'application/ld+text;line-ending=lf',
+    'Accept': 'application/vnd.styx.line-delimited;line-ending=lf',
   },
   params={
     'count': '100',
@@ -78,7 +78,7 @@ if err != nil {
   log.Fatal(err)
 }
 
-req.Header.Add("Accept", "application/ld+text;line-ending=lf")
+req.Header.Add("Accept", "application/vnd.styx.line-delimited;line-ending=lf")
 
 res, err := client.Do(req)
 if err != nil {
@@ -97,7 +97,7 @@ import request
 res = requests.get(
   'http://localhost:8000/logs/myLog/records',
   headers={
-    'Accept': 'application/ld+text;line-ending=lf',
+    'Accept': 'application/vnd.styx.line-delimited;line-ending=lf',
     'X-Styx-Timeout': '30'
   },
   params={
@@ -123,7 +123,7 @@ if err != nil {
   log.Fatal(err)
 }
 
-req.Header.Add("Accept", "application/ld+text;line-ending=lf")
+req.Header.Add("Accept", "application/vnd.styx.line-delimited;line-ending=lf")
 req.Header.Add("X-Styx-Timeout", "30")
 
 res, err := client.Do(req)
@@ -148,7 +148,7 @@ while True:
   res = requests.get(
     'http://localhost:8000/logs/myLog/records',
     headers={
-      'Accept': 'application/ld+text;line-ending=lf',
+      'Accept': 'application/vnd.styx.line-delimited;line-ending=lf',
       'X-Styx-Timeout': '30'
     },
     params={
@@ -187,7 +187,7 @@ for {
     log.Fatal(err)
   }
 
-  req.Header.Set("Accept", "application/ld+text;line-ending=lf")
+  req.Header.Set("Accept", "application/vnd.styx.line-delimited;line-ending=lf")
   req.Header.Set("X-Styx-Timeout", "30")
 
   res, err := client.Do(req)

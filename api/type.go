@@ -18,8 +18,8 @@ import (
 
 const (
 	TimeoutHeaderName     = "X-Styx-Timeout"
-	RecordLinesMediaType  = "application/ld+text"
-	RecordBinaryMediaType = "application/vnd.styx-records"
+	RecordLinesMediaType  = "application/vnd.styx.line-delimited"
+	RecordBinaryMediaType = "application/vnd.styx.binary-records"
 	StyxProtocolString    = "styx/0"
 )
 
