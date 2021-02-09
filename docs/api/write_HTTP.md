@@ -64,7 +64,7 @@ client.Post(
 
 ```bash
 $ curl -XPOST 'http://localhost:8000/logs/myLog/records' \
-  -H 'Content-Type: application/ld+text;line-ending=lf' \
+  -H 'Content-Type: application/vnd.styx.line-delimited;line-ending=lf' \
   -d $'my record content\nmy record content\n'
 ```
 
@@ -76,7 +76,7 @@ import requests
 requests.post(
   'http://localhost:8000/logs/myLog/records',
   headers={
-    'Content-Type': 'application/ld+text;line-ending=lf'
+    'Content-Type': 'application/vnd.styx.line-delimited;line-ending=lf'
   },
   data=b''.join([b'my record content\n' for i in range(10)])
 )
@@ -96,7 +96,7 @@ records := strings.Repeat("my record content\n", 10)
 client := &http.Client{}
 client.Post(
   "http://localhost:8000/logs/myLog/records",
-  "application/ld+text;line-ending=lf", 
+  "application/vnd.styx.line-delimited;line-ending=lf", 
   bytes.NewReader([]byte(records)),
 )
 ```

@@ -81,7 +81,7 @@ fmt.Println(record)
 
 ```bash
 $ curl -XGET 'http://localhost:8000/logs/myLog/records?whence=start&count=10' \
-  -H 'Accept: application/ld+text;line-ending=lf'
+  -H 'Accept: application/vnd.styx.line-delimited;line-ending=lf'
 ```
 
 **Python** (_Requires [requests](https://pypi.org/project/requests/) package._)
@@ -96,7 +96,7 @@ res = requests.get(
     'count': 10
   },
   headers={
-    'Accept': 'application/ld+text;line-ending=lf'
+    'Accept': 'application/vnd.styx.line-delimited;line-ending=lf'
   }
 )
 
@@ -121,7 +121,7 @@ if err != nil {
   log.Fatal(err)
 }
 
-req.Header.Add("Accept", "application/ld+text;line-ending=lf")
+req.Header.Add("Accept", "application/vnd.styx.line-delimited;line-ending=lf")
 
 res, err := client.Do(req)
 if err != nil {
