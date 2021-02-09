@@ -12,7 +12,7 @@ Install requirements
 pip3 install -r requirements.txt
 ```
 
-Ensure Styx is running and create a "gdax" log.
+Ensure Styx is running and create a "gdax" log
 
 ```bash
 curl localhost:8000/logs -X POST -d name=gdax
