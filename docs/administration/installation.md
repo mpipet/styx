@@ -56,5 +56,5 @@ $ docker run -it --rm -p 8000:8000 --name styx styx
 Run using host data directory
 
 ```bash
-$ docker run -it --rm -p 8000:8000 --mount type=bind,source="$(pwd)"/data,target=/data --name styx styx
+$ docker run -it --rm -p 8000:8000 --mount type=bind,source="$(pwd)"/data,target=/etc/styx/data --name styx styx
 ```
