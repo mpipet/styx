@@ -59,18 +59,15 @@ func RegisterRoutes(router *mux.Router, logManager *logman.LogManager, config co
 
 	router.HandleFunc("/{name}/records", lr.WriteWSHandler).
 		Methods(http.MethodGet).
-		Headers("Connection", "upgrade").
 		Headers("Upgrade", "websocket").
 		Headers("X-HTTP-Method-Override", "POST")
 
 	router.HandleFunc("/{name}/records", lr.WriteWSHandler).
 		Methods(http.MethodPost).
-		Headers("Connection", "upgrade").
 		Headers("Upgrade", "websocket")
 
 	router.HandleFunc("/{name}/records", lr.ReadWSHandler).
 		Methods(http.MethodGet).
-		Headers("Connection", "upgrade").
 		Headers("Upgrade", "websocket")
 
 	router.HandleFunc("/{name}/records", lr.WriteTCPHandler).
