@@ -12,7 +12,7 @@ Install requirements
 pip3 install -r requirements.txt
 ```
 
-Ensure Styx is running and create a "measures" log.
+Ensure Styx is running and create a "measures" log
 
 ```bash
 curl localhost:8000/logs -X POST -d name=measures
