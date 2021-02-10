@@ -58,8 +58,13 @@ func UpgradeWebsocket(w http.ResponseWriter, r *http.Request, allowedOrigins []s
 
 	upgrader := websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) (ret bool) {
-			origin := r.Header.Get("Origin")
-			return matchOrigin(origin, allowedOrigins)
+
+			origins, exists := r.Header["Origin"]
+			if !exists {
+				return true
+			}
+
+			return matchOrigin(origins[0], allowedOrigins)
 		},
 	}
 
@@ -72,10 +77,6 @@ func UpgradeWebsocket(w http.ResponseWriter, r *http.Request, allowedOrigins []s
 }
 
 func matchOrigin(origin string, allowed []string) (match bool) {
-
-	if origin == "" {
-		return false
-	}
 
 	for _, a := range allowed {
 		if matchWildcard(origin, a) {

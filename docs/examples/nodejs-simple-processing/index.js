@@ -27,13 +27,11 @@ function transform() {
 }
 
 const source = Websocket('ws://localhost:8000/logs/events/records', {
-	objectMode: true,
-	origin: 'localhost'
+	objectMode: true
 })
 
 const sink = Websocket('ws://localhost:8000/logs/stats/records', {
 	objectMode: true,
-	origin: 'localhost',
 	headers: {
 		'X-HTTP-Method-Override': 'POST'
 	}

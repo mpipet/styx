@@ -46,16 +46,12 @@ while True:
 import (
   "fmt"
   "log"
-  "net/http"
   "github.com/gorilla/websocket"
 )
 
 dialer := websocket.Dialer{}
 
-headers := http.Header{}
-headers.Set("Origin", "localhost")
-
-conn, res, err := dialer.Dial("ws://localhost:8000/logs/myLog/records?whence=start&position=0", headers)
+conn, res, err := dialer.Dial("ws://localhost:8000/logs/myLog/records?whence=start&position=0", nil)
 if err != nil {
   log.Fatal(err)
 }
