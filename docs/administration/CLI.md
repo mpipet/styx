@@ -6,25 +6,25 @@ To display this usage, either run `styx logs` or `styx logs --help`.
 
 
 ```bash
-$ styx logs --help
+$ styx logs -h
 Usage: styx logs COMMAND
 
 Manage logs
 
 Commands:
-        list            List available logs
-        create          Create a new log
-        get             Show log details
-        delete          Delete a log
-        backup          Backup a log
-        restore         Restore a log
-        write           Write records to a log
-        read            Read records from a log
+        list                    List available logs
+        create                  Create a new log
+        get                     Show log details
+        delete                  Delete a log
+        backup                  Backup a log
+        restore                 Restore a log
+        write                   Write records to a log
+        read                    Read records from a log
 
 Global Options:
-        --format string                 Output format [text|json] (default "text")
-        --host string                   Server to connect to (default "http://localhost:8000")
-        --help                          Display help
+        -f, --format string     Output format [text|json] (default "text")
+        -H, --host string       Server to connect to (default "http://localhost:8000")
+        -h, --help              Display help
 ```
 
 ## List logs
@@ -32,17 +32,16 @@ Global Options:
 ### Usage
 
 ```bash
-$ styx logs list --help
-
+$ styx logs list -h
 Usage: styx logs list [OPTIONS]
 
 List available logs
 
 Global Options:
-        --watch                 Display and update informations about logs
-        --format string         Output format [text|json] (default "text")
-        --host string           Server to connect to (default "http://localhost:8000")
-        --help                  Display help
+        -w, --watch             Display and update informations about logs
+        -f, --format string     Output format [text|json] (default "text")
+        -H, --host string       Server to connect to (default "http://localhost:8000")
+        -h, --help              Display help
 ```
 
 ### Example
@@ -59,7 +58,7 @@ test            ok              3000075                 1524000942              
 ### Usage
 
 ```bash
-$ styx logs create --help
+$ styx logs create -h
 Usage: styx logs create NAME [OPTIONS]
 
 Create a new log
@@ -75,9 +74,9 @@ Options:
         --log-max-age seconds           Expire oldest segment when log exceeds this age
 
 Global Options:
-        --format string                 Output format [text|json] (default "text")
-        --host string                   Server to connect to (default "http://localhost:8000")
-        --help                          Display help
+        -f, --format string             Output format [text|json] (default "text")
+        -H, --host string               Server to connect to (default "http://localhost:8000")
+        -h, --help                      Display help
 ```
 
 ### Example
@@ -97,15 +96,15 @@ end_position:           0
 ### Usage
 
 ```bash
-$ styx logs get --help
+$ styx logs get -h
 Usage: styx logs get NAME [OPTIONS]
 
 Show log details
 
 Global Options:
-        --format string         Output format [text|json] (default "text")
-        --host string           Server to connect to (default "http://localhost:8000")
-        --help                  Display help
+        -f, --format string     Output format [text|json] (default "text")
+        -H, --host string       Server to connect to (default "http://localhost:8000")
+        -h, --help              Display help
 ```
 
 ### Example
@@ -125,14 +124,14 @@ end_position:           38
 ### Usage
 
 ```bash
-$ styx logs delete --help
+$ styx logs delete -h
 Usage: styx logs delete NAME [OPTIONS]
 
 Delete a log
 
 Global Options:
-        --host string   Server to connect to (default "http://localhost:8000")
-        --help          Display help
+        -H, --host string       Server to connect to (default "http://localhost:8000")
+        -h, --help              Display help
 ```
 
 ### Example
@@ -146,14 +145,14 @@ $ styx logs delete myLog
 ### Usage
 
 ```bash
-$ styx logs backup --help
+$ styx logs backup -h
 Usage: styx logs backup NAME [OPTIONS]
 
 Backup log
 
 Global Options:
-        --host string           Server to connect to (default "http://localhost:8000")
-        --help                  Display help
+        -H, --host string       Server to connect to (default "http://localhost:8000")
+        -h, --help              Display help
 ```
 
 ### Example
@@ -167,14 +166,14 @@ $ styx logs backup myLog >> myLog.backup.tar.gz
 ### Usage
 
 ```bash
-$ styx logs restore --help
+$ styx logs restore -h
 Usage: styx logs restore NAME [OPTIONS]
 
 Restore log
 
 Global Options:
-        --host string           Server to connect to (default "http://localhost:8000")
-        --help                  Display help
+        -H, --host string       Server to connect to (default "http://localhost:8000")
+        -h, --help              Display help
 ```
 
 ### Example
@@ -188,19 +187,19 @@ $ styx logs restore restoredLog < myLog.backup.tar.gz
 ### Usage
 
 ```bash
-$ styx logs write --help
+$ styx logs write -h
 Usage: styx logs write NAME [OPTIONS]
 
 Write to log, input is expected to be line delimited record payloads
 
 Options:
-        --unbuffered    Do not buffer writes
-        --binary        Process input as binary records
-        --line-ending   Line end [cr|lf|crlf] for non binary record output
+        -u, --unbuffered        Do not buffer writes
+        -b, --binary            Process input as binary records
+        -l, --line-ending       Line end [cr|lf|crlf] for non binary record output
 
 Global Options:
-        --host string   Server to connect to (default "http://localhost:8000")
-        --help          Display help
+        -H, --host string       Server to connect to (default "http://localhost:8000")
+        -h, --help              Display help
 ```
 
 ### Example
@@ -216,23 +215,23 @@ $ styx logs write myLog
 ### Usage
 
 ```bash
-$ styx logs read --help
+$ styx logs read -h
 Usage: styx logs read NAME [OPTIONS]
 
 Read from log and output line delimited record payloads
 
 Options:
-        --position int          Position to start reading from (default 0)
-        --whence string         Reference from which position is computed [origin|start|end] (default "start")
-        --count int             Maximum count of records to read (cannot be used in association with --follow)
-        --follow                Wait for new records when reaching end of stream
-        --unbuffered            Do not buffer read
-        --binary                Output binary records
-        --line-ending           Line end [cr|lf|crlf] for non binary record output
+        -P, --position int      Position to start reading from (default 0)
+        -w, --whence string     Reference from which position is computed [origin|start|end] (default "start")
+        -n, --count int         Maximum count of records to read (cannot be used in association with --follow)
+        -F, --follow            Wait for new records when reaching end of stream
+        -u, --unbuffered        Do not buffer read
+        -b, --binary            Output binary records
+        -l, --line-ending       Line end [cr|lf|crlf] for non binary record output
 
 Global Options:
-        --host string           Server to connect to (default "http://localhost:8000")
-        --help                  Display help
+        -H, --host string       Server to connect to (default "http://localhost:8000")
+        -h, --help              Display help
 ```
 
 ### Example
