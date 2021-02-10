@@ -54,7 +54,7 @@ func ReadLog(args []string) {
 	readOpts := pflag.NewFlagSet("read", pflag.ContinueOnError)
 	whence := readOpts.StringP("whence", "w", string(log.SeekOrigin), "")
 	position := readOpts.Int64P("position", "P", 0, "")
-	count := readOpts.Int64P("count", "P", -1, "")
+	count := readOpts.Int64P("count", "n", -1, "")
 	follow := readOpts.BoolP("follow", "F", false, "")
 	unbuffered := readOpts.BoolP("unbuffered", "u", false, "")
 	binary := readOpts.BoolP("binary", "b", false, "")

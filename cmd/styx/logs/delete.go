@@ -30,7 +30,7 @@ func DeleteLog(args []string) {
 
 	deleteOpts := pflag.NewFlagSet("logs delete", pflag.ContinueOnError)
 	host := deleteOpts.StringP("host", "H", "http://localhost:8000", "")
-	isHelp := deleteOpts.BoolP("help", "-h", false, "")
+	isHelp := deleteOpts.BoolP("help", "h", false, "")
 	deleteOpts.Usage = func() {
 		cmd.DisplayUsage(cmd.MisuseCode, logsDeleteUsage)
 	}

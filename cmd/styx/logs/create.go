@@ -62,20 +62,20 @@ func CreateLog(args []string) {
 	host := createOpts.StringP("host", "H", "http://localhost:8000", "")
 	isHelp := createOpts.BoolP("help", "h", false, "")
 	createOpts.Usage = func() {
-		cmd.DisplayUsage(2, logsCreateUsage)
+		cmd.DisplayUsage(cmd.MisuseCode, logsCreateUsage)
 	}
 
 	err := createOpts.Parse(args)
 	if err != nil {
-		cmd.DisplayUsage(2, logsCreateUsage)
+		cmd.DisplayUsage(cmd.MisuseCode, logsCreateUsage)
 	}
 
 	if *isHelp {
-		cmd.DisplayUsage(0, logsCreateUsage)
+		cmd.DisplayUsage(cmd.SuccessCode, logsCreateUsage)
 	}
 
 	if createOpts.NArg() != 1 {
-		cmd.DisplayUsage(2, logsCreateUsage)
+		cmd.DisplayUsage(cmd.MisuseCode, logsCreateUsage)
 	}
 
 	httpClient := client.NewClient(*host)
