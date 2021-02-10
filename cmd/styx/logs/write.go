@@ -31,7 +31,7 @@ Write to log, input is expected to be line delimited record payloads
 Options:
 	-u, --unbuffered	Do not buffer writes
 	-b, --binary		Process input as binary records
-	-l, --line-ending   	Line end [cr|lf|crlf] for non binary record output
+	-l, --line-ending   	Specify line-ending [cr|lf|crlf] for non binary record input
 
 Global Options:
 	-H, --host string 	Server to connect to (default "http://localhost:8000")

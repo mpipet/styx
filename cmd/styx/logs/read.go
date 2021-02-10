@@ -36,7 +36,7 @@ Options:
 	-F, --follow 		Wait for new records when reaching end of stream
 	-u, --unbuffered	Do not buffer read
 	-b, --binary		Output binary records
-	-l, --line-ending   	Line end [cr|lf|crlf] for non binary record output
+	-l, --line-ending   	Specify line-ending [cr|lf|crlf] for non binary record output
 
 Global Options:
 	-H, --host string 	Server to connect to (default "http://localhost:8000")
