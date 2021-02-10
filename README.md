@@ -87,6 +87,8 @@ Check that the CLI can access the server. You should see an empty log list.
 
 These examples assume you've built from source and got a running Styx server. You may need to adapt the commands if you run from the docker image.
 
+### Basic log management
+
 List available logs
 
 ```bash
@@ -121,6 +123,12 @@ List the available logs again. You should see your log stats updated.
 ./styx logs list
 ```
 
+Delete the test log
+
+```bash
+./styx logs delete test
+```
+
 The CLI exposes the full log management API. Use the `--help` flag to get a summary of available commands.
 
 ```bash
@@ -133,9 +141,75 @@ To get detailed help on a command use the `--help` flag after the command name. 
 ./styx logs create --help
 ```
 
-### Test title
+### Consuming logs
 
+Create an empty log
+
+```bash
+./styx logs create test
+```
+
+Fill it with a few lines
+
+```bash
+./styx logs write test
+< styx
+< is
+< really
+< awesome !
+```
+
+You can read it from beggining to end
+
+```bash
+./styx logs read test
+```
+
+Or read only the first two records
+
+```bash
+./styx logs read test -n 2
+```
+
+Or read the last two records by starting from the record at position 2.
+
+```bash
+./styx logs read test --position=2
+```
+
+You can accomplish the same by using relative positioning. Here we request position -2 from the end of the log.
+
+```bash
+./styx logs read test --whence=end --position=-2
+```
+
+To follow a log in real-time, use the `--follow` or `-f` flag.
+
+```bash
+./styx logs read test -f
+```
+
+If you simultaneously write to the log you'll get the updates in real time.
 
 ## Documentation
 
-See [Documentation](/docs) for more informations about Styx.
+For further information see the [Documentation](/docs), the [API Reference](/docs/api), the [Examples](/docs/examples) or the [Howto's](/docs/howto).
+
+## Licence
+
+Styx is published under a permissive Apache 2.0 + BSL licence. This is not legal advice and cannot be sustituted to the [LICENSE](LICENSE) file, but it means in short that unless you are a cloud provider or plan to make money by selling styx as a service, you're safe to use it for any purpose you see fit.
+
+This project is source-avvailable only for now, but we are open-source lovers. We choosed Apache 2.0 + BSL after much thought and debate to be able to build a sustainable business that will ultimately feed into Styx development and features. We did not multi-license the repository to keep things simple for now, but we plan on relaxing licensing on the most code surface possible and as early as possible. We prefer to start with restrictions (though minimal) and remove them along the path, than going the other way and deceiving users and contributors.
+
+## Contributions
+
+We do not accept code contributions for now for stability reasons. In particular, patching the core requires deep knowledge of the architecture and extensive testing. Reviewing submissions may be difficult to scale for the two of us, so we prefer to keep it closed for now.
+
+That being said, you are more than wecome to post issues, bug reports, or feature suggestions. We are open to discussion and eager to learn about your use cases.
+
+## Community
+
+You can join our Slack server at [...].
+
+
+
