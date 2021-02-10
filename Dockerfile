@@ -13,6 +13,8 @@ WORKDIR /
 COPY --from=builder /go/src/gitlab.com/dataptive/styx/config.toml /etc/styx/config.toml
 COPY --from=builder /go/bin /usr/bin
 
-ENTRYPOINT ["styx-server", "--config", "/etc/styx/config.toml"]
+RUN mkdir data
+
+ENTRYPOINT ["styx-server", "--config", "/etc/styx/config.toml", "--log-level", "TRACE"]
 
 EXPOSE 8000
