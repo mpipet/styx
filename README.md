@@ -15,7 +15,7 @@ More specifically we tried to address:
 - **Data safety**: records are immutable, atomic, durable, and fsynced to permanent storage before being acked. Styx detects data corruption at the record level in case of storage failure.
 - **Performance**: very fast binary protocol available as an HTTP upgrade when performance is critical. Millions of events per second on a single node, GB/s thoughput, low latency. Scales to thousands of concurrent producers and consumers.
 
-## Install
+## Installing
 
 There are various ways of installing Styx.
 
