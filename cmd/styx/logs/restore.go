@@ -24,14 +24,14 @@ Usage: styx logs restore NAME [OPTIONS]
 Restore log
 
 Global Options:
-	--host string 		Server to connect to (default "http://localhost:8000")
-	--help 			Display help
+	-H, --host string 	Server to connect to (default "http://localhost:8000")
+	-h, --help 		Display help
 `
 
 func RestoreLog(args []string) {
 	restoreOpts := pflag.NewFlagSet("logs backup", pflag.ContinueOnError)
-	host := restoreOpts.String("host", "http://localhost:8000", "")
-	isHelp := restoreOpts.Bool("help", false, "")
+	host := restoreOpts.StringP("host", "H", "http://localhost:8000", "")
+	isHelp := restoreOpts.BoolP("help", "h", false, "")
 	restoreOpts.Usage = func() {
 		cmd.DisplayUsage(cmd.MisuseCode, logsRestoreUsage)
 	}

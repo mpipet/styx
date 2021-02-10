@@ -22,15 +22,15 @@ Usage: styx logs delete NAME [OPTIONS]
 Delete a log
 
 Global Options:
-	--host string 	Server to connect to (default "http://localhost:8000")
-	--help 		Display help
+	-H, --host string 	Server to connect to (default "http://localhost:8000")
+	-h, --help 		Display help
 `
 
 func DeleteLog(args []string) {
 
 	deleteOpts := pflag.NewFlagSet("logs delete", pflag.ContinueOnError)
-	host := deleteOpts.String("host", "http://localhost:8000", "")
-	isHelp := deleteOpts.Bool("help", false, "")
+	host := deleteOpts.StringP("host", "H", "http://localhost:8000", "")
+	isHelp := deleteOpts.BoolP("help", "-h", false, "")
 	deleteOpts.Usage = func() {
 		cmd.DisplayUsage(cmd.MisuseCode, logsDeleteUsage)
 	}

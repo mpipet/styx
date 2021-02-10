@@ -22,9 +22,9 @@ Usage: styx logs get NAME [OPTIONS]
 Show log details
 
 Global Options:
-	--format string		Output format [text|json] (default "text")
-	--host string 		Server to connect to (default "http://localhost:8000")
-	--help 			Display help
+	-f, --format string	Output format [text|json] (default "text")
+	-H, --host string 	Server to connect to (default "http://localhost:8000")
+	-h, --help 		Display help
 `
 
 const logsGetTmpl = `name:	{{.Name}}
@@ -38,9 +38,9 @@ end_position:	{{.EndPosition}}
 func GetLog(args []string) {
 
 	getOpts := pflag.NewFlagSet("logs get", pflag.ContinueOnError)
-	host := getOpts.String("host", "http://localhost:8000", "")
-	format := getOpts.String("format", "text", "")
-	isHelp := getOpts.Bool("help", false, "")
+	host := getOpts.StringP("host", "H", "http://localhost:8000", "")
+	format := getOpts.StringP("format", "f", "text", "")
+	isHelp := getOpts.BoolP("help", "h", false, "")
 	getOpts.Usage = func() {
 		cmd.DisplayUsage(cmd.MisuseCode, logsGetUsage)
 	}

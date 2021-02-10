@@ -26,9 +26,9 @@ Commands:
 	logs  Manage logs
 
 Global Options:
-	--format string			Output format [text|json] (default "text")
-	--host string 			Server to connect to (default "http://localhost:8000")
-	--help 				Display help
+	-f, --format string	Output format [text|json] (default "text")
+	-H, --host string 	Server to connect to (default "http://localhost:8000")
+	-h, --help 		Display help
 `
 
 	logsUsage = `
@@ -37,19 +37,19 @@ Usage: styx logs COMMAND
 Manage logs
 
 Commands:
-	list		List available logs
-	create		Create a new log
-	get		Show log details
-	delete		Delete a log
-	backup		Backup a log
-	restore		Restore a log
-	write		Write records to a log
-	read		Read records from a log
+	list			List available logs
+	create			Create a new log
+	get			Show log details
+	delete			Delete a log
+	backup			Backup a log
+	restore			Restore a log
+	write			Write records to a log
+	read			Read records from a log
 
 Global Options:
-	--format string			Output format [text|json] (default "text")
-	--host string 			Server to connect to (default "http://localhost:8000")
-	--help 				Display help
+	-f, --format string	Output format [text|json] (default "text")
+	-H, --host string 	Server to connect to (default "http://localhost:8000")
+	-h, --help 		Display help
 `
 )
 
@@ -89,11 +89,15 @@ func main() {
 			logs.ReadLog(args[1:])
 		case "--help":
 			cmd.DisplayUsage(cmd.SuccessCode, logsUsage)
+		case "-h":
+			cmd.DisplayUsage(cmd.SuccessCode, logsUsage)
 		default:
 			cmd.DisplayUsage(cmd.MisuseCode, logsUsage)
 		}
 
 	case "--help":
+		cmd.DisplayUsage(cmd.SuccessCode, cliUsage)
+	case "-h":
 		cmd.DisplayUsage(cmd.SuccessCode, cliUsage)
 	default:
 		cmd.DisplayUsage(cmd.MisuseCode, cliUsage)

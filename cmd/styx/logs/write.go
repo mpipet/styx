@@ -29,13 +29,13 @@ Usage: styx logs write NAME [OPTIONS]
 Write to log, input is expected to be line delimited record payloads
 
 Options:
-	--unbuffered	Do not buffer writes
-	--binary	Process input as binary records
-	--line-ending   Line end [cr|lf|crlf] for non binary record output
+	-u, --unbuffered	Do not buffer writes
+	-b, --binary		Process input as binary records
+	-l, --line-ending   	Line end [cr|lf|crlf] for non binary record output
 
 Global Options:
-	--host string 	Server to connect to (default "http://localhost:8000")
-	--help 		Display help
+	-H, --host string 	Server to connect to (default "http://localhost:8000")
+	-h, --help 		Display help
 `
 
 func WriteLog(args []string) {
@@ -47,11 +47,11 @@ func WriteLog(args []string) {
 	)
 
 	writeOpts := pflag.NewFlagSet("logs write", pflag.ContinueOnError)
-	unbuffered := writeOpts.Bool("unbuffered", false, "")
-	binary := writeOpts.Bool("binary", false, "")
-	lineEnding := writeOpts.String("line-ending", "lf", "")
-	host := writeOpts.String("host", "http://localhost:8000", "")
-	isHelp := writeOpts.Bool("help", false, "")
+	unbuffered := writeOpts.BoolP("unbuffered", "u", false, "")
+	binary := writeOpts.BoolP("binary", "b", false, "")
+	lineEnding := writeOpts.StringP("line-ending", "l", "lf", "")
+	host := writeOpts.StringP("host", "H", "http://localhost:8000", "")
+	isHelp := writeOpts.BoolP("help", "h", false, "")
 	writeOpts.Usage = func() {
 		cmd.DisplayUsage(cmd.MisuseCode, logsWriteUsage)
 	}

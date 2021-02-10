@@ -34,9 +34,9 @@ Options:
 	--log-max-age seconds 		Expire oldest segment when log exceeds this age
 
 Global Options:
-	--format string			Output format [text|json] (default "text")
-	--host string 			Server to connect to (default "http://localhost:8000")
-	--help 				Display help
+	-f, --format string		Output format [text|json] (default "text")
+	-H, --host string 		Server to connect to (default "http://localhost:8000")
+	-h, --help 			Display help
 `
 
 const logsCreateTmpl = `name:	{{.Name}}
@@ -58,9 +58,9 @@ func CreateLog(args []string) {
 	logMaxCount := createOpts.Int64("log-max-count", log.DefaultConfig.LogMaxCount, "")
 	logMaxSize := createOpts.Int64("log-max-size", log.DefaultConfig.LogMaxSize, "")
 	logMaxAge := createOpts.Int64("log-max-age", log.DefaultConfig.LogMaxAge, "")
-	format := createOpts.String("format", "text", "")
-	host := createOpts.String("host", "http://localhost:8000", "")
-	isHelp := createOpts.Bool("help", false, "")
+	format := createOpts.StringP("format", "f", "text", "")
+	host := createOpts.StringP("host", "H", "http://localhost:8000", "")
+	isHelp := createOpts.BoolP("help", "h", false, "")
 	createOpts.Usage = func() {
 		cmd.DisplayUsage(2, logsCreateUsage)
 	}

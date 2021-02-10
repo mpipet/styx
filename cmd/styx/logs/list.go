@@ -25,10 +25,10 @@ Usage: styx logs list [OPTIONS]
 List available logs
 
 Global Options:
-	--watch			Display and update informations about logs
-	--format string		Output format [text|json] (default "text")
-	--host string 		Server to connect to (default "http://localhost:8000")
-	--help 			Display help
+	-w, --watch		Display and update informations about logs
+	-f, --format string	Output format [text|json] (default "text")
+	-H, --host string 	Server to connect to (default "http://localhost:8000")
+	-h, --help 		Display help
 `
 
 const logsListTmpl = `NAME	STATUS	RECORD COUNT	FILE SIZE	START POSITION	END POSITION
@@ -38,10 +38,10 @@ const logsListTmpl = `NAME	STATUS	RECORD COUNT	FILE SIZE	START POSITION	END POSI
 func ListLogs(args []string) {
 
 	listOpts := pflag.NewFlagSet("logs list", pflag.ContinueOnError)
-	watch := listOpts.Bool("watch", false, "")
-	format := listOpts.String("format", "default", "")
-	host := listOpts.String("host", "http://localhost:8000", "")
-	isHelp := listOpts.Bool("help", false, "")
+	watch := listOpts.BoolP("watch", "w", false, "")
+	format := listOpts.StringP("format", "f", "default", "")
+	host := listOpts.StringP("host", "H", "http://localhost:8000", "")
+	isHelp := listOpts.BoolP("help", "h", false, "")
 	listOpts.Usage = func() {
 		cmd.DisplayUsage(cmd.MisuseCode, logsListUsage)
 	}

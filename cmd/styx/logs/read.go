@@ -30,17 +30,17 @@ Usage: styx logs read NAME [OPTIONS]
 Read from log and output line delimited record payloads
 
 Options:
-	--position int 		Position to start reading from (default 0)
-	--whence string		Reference from which position is computed [origin|start|end] (default "start")
-	--count int		Maximum count of records to read (cannot be used in association with --follow)
-	--follow 		Wait for new records when reaching end of stream
-	--unbuffered		Do not buffer read
-	--binary		Output binary records
-	--line-ending   	Line end [cr|lf|crlf] for non binary record output
+	-P, --position int 	Position to start reading from (default 0)
+	-w, --whence string	Reference from which position is computed [origin|start|end] (default "start")
+	-n, --count int		Maximum count of records to read (cannot be used in association with --follow)
+	-F, --follow 		Wait for new records when reaching end of stream
+	-u, --unbuffered	Do not buffer read
+	-b, --binary		Output binary records
+	-l, --line-ending   	Line end [cr|lf|crlf] for non binary record output
 
 Global Options:
-	--host string 		Server to connect to (default "http://localhost:8000")
-	--help 			Display help
+	-H, --host string 	Server to connect to (default "http://localhost:8000")
+	-h, --help 		Display help
 `
 
 func ReadLog(args []string) {
@@ -52,15 +52,15 @@ func ReadLog(args []string) {
 	)
 
 	readOpts := pflag.NewFlagSet("read", pflag.ContinueOnError)
-	whence := readOpts.String("whence", string(log.SeekOrigin), "")
-	position := readOpts.Int64("position", 0, "")
-	count := readOpts.Int64("count", -1, "")
-	follow := readOpts.Bool("follow", false, "")
-	unbuffered := readOpts.Bool("unbuffered", false, "")
-	binary := readOpts.Bool("binary", false, "")
-	lineEnding := readOpts.String("line-ending", "lf", "")
-	host := readOpts.String("host", "http://localhost:8000", "")
-	isHelp := readOpts.Bool("help", false, "")
+	whence := readOpts.StringP("whence", "w", string(log.SeekOrigin), "")
+	position := readOpts.Int64P("position", "P", 0, "")
+	count := readOpts.Int64P("count", "P", -1, "")
+	follow := readOpts.BoolP("follow", "F", false, "")
+	unbuffered := readOpts.BoolP("unbuffered", "u", false, "")
+	binary := readOpts.BoolP("binary", "b", false, "")
+	lineEnding := readOpts.StringP("line-ending", "l", "lf", "")
+	host := readOpts.StringP("host", "H", "http://localhost:8000", "")
+	isHelp := readOpts.BoolP("help", "h", false, "")
 	readOpts.Usage = func() {
 		cmd.DisplayUsage(cmd.MisuseCode, logsReadUsage)
 	}
