@@ -13,7 +13,7 @@ More specifically we tried to address:
 - **Ease of integration and language compatibility**: produce and consume streams in a few lines of code from any language equipped with a HTTP or Websockets client. Producing and consuming can be as simple as a GET or a POST request. Produce and consume in batches if needed. GET supports long polling.
 - **Ease of operation**: single binary and no dependencies to manage, full REST API, CLI, simple TOML configuration, out-of-the box Prometheus and Statsd monitoring, simple backup and restore, multiple retention options, runs well in docker.
 - **Data safety**: records are immutable, atomic, durable, and fsynced to permanent storage before being acked. Styx detects data corruption at the record level in case of storage failure.
-- **Performance**: very fast binary protocol available as an HTTP upgrade when performance is critical. Millions of events per second on a single node, GB/s thoughput, low latency. Thousands of concurrent producers and consumers.
+- **Performance**: very fast binary protocol available as an HTTP upgrade when performance is critical. Millions of events per second on a single node, GB/s thoughput, low latency. Scales to thousands of concurrent producers and consumers.
 
 ## Install
 
@@ -82,6 +82,59 @@ Check that the CLI can access the server. You should see an empty log list.
 ```bash
 ./styx logs list
 ```
+
+## Getting started
+
+These examples assume you've built from source and got a running Styx server. You may need to adapt the commands if you run from the docker image.
+
+List available logs
+
+```bash
+./styx logs list
+```
+
+Create a test log
+
+```bash
+./styx logs create test
+```
+
+Follow the log contents from a terminal
+
+```bash
+./styx logs read test --follow
+```
+
+Write to the log from another terminal
+
+```bash
+./styx logs write test
+< hello
+< styx !
+```
+
+You should see the records reflected on the reading side.
+
+List the available logs again. You should see your log stats updated.
+
+```bash
+./styx logs list
+```
+
+The CLI exposes the full log management API. Use the `--help` flag to get a summary of available commands.
+
+```bash
+./styx logs --help
+```
+
+To get detailed help on a command use the `--help` flag after the command name. For example:
+
+```bash
+./styx logs create --help
+```
+
+### Test title
+
 
 ## Documentation
 
