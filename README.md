@@ -1,7 +1,7 @@
 <img src="https://gitlab.com/dataptive/styx/-/raw/master/docs/logo.png" alt="Styx" width="250">
 
-What is Styx ?
---------------
+## What is Styx ?
+
 
 Styx is a simple, high-performance event streaming database.
 
@@ -16,5 +16,20 @@ More specifically we tried to address :
 - **Data safety**: records are immutable, atomic, durable, and fsynced to permanent storage before being acked. Styx detects data corruption at the record level in case of storage failure.
 - **Performance**: Upgrade to Styx binary protocol when performance is critical. Millions of events per second on a single node, GB/s thoughput, low latency. Thousands of concurrent producers and consumers.
 
+## Install
+
+### Using docker
+
+TODO
+
+### Precompiled binaries
+
+TODO
+
+### Building from source
+
+TODO
+
+## Documentation
 
 See [Documentation](/docs) for more informations about Styx.
