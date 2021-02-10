@@ -199,13 +199,13 @@ For further information see the [Documentation](/docs), the [API Reference](/doc
 
 Styx is published under a permissive Apache 2.0 + BSL licence. This is not legal advice and cannot be sustituted to the [LICENSE](LICENSE) file, but it means in short that unless you are a cloud provider or plan to make money by selling styx as a service, you're safe to use it for any purpose you see fit.
 
-This project is source-avvailable only for now, but we are open-source lovers. We choosed Apache 2.0 + BSL after much thought and debate to be able to build a sustainable business that will ultimately feed into Styx development and features. We did not multi-license the repository to keep things simple for now, but we plan on relaxing licensing on the most code surface possible and as early as possible. We prefer to start with restrictions (though minimal) and remove them along the path, than going the other way and deceiving users and contributors.
+This project is source-available for now, but as open-source lovers we plan to open it progressively. We choosed Apache 2.0 + BSL after much thought and debate to be able to build a sustainable business that will ultimately feed into Styx development and features. We did not multi-license the repository to keep things simple for now, but we plan on relaxing licensing on the most code surface possible as early as possible. We prefer to start with restrictions (though minimal) and remove them along the way, than going the other way around and deceiving users and contributors.
 
 ## Contributions
 
 We do not accept code contributions for now for stability reasons. In particular, patching the core requires deep knowledge of the architecture and extensive testing. Reviewing submissions may be difficult to scale for the two of us, so we prefer to keep it closed for now.
 
-That being said, you are more than wecome to post issues, bug reports, or feature suggestions. We are open to discussion and eager to learn about your use cases.
+That being said, you are more than wecome to post issues, bug reports, or feature suggestions. We are open to discussion and eager to learn about your use cases !
 
 ## Community
 
