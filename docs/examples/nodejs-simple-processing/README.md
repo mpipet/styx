@@ -46,4 +46,4 @@ The latest values can read by fetching the last record from the stats log
 
 ```bash
 curl "localhost:8000/logs/stats/records?whence=end&position=-1" -s | jq .
-```
+``
