@@ -19,7 +19,7 @@ else:
 print("restarting at position %d" % position)
 
 # Setup source and sink websocket streams. Request source from restart position.
-source = websocket.create_connection('ws://localhost:8000/logs/%s/records?position=%d' % (STYX_SOURCE, position))
+source = websocket.create_connection('ws://localhost:8000/logs/%s/records?position=%d&follow=true' % (STYX_SOURCE, position))
 sink = websocket.create_connection('ws://localhost:8000/logs/%s/records' % STYX_SINK, header=[
 	'X-HTTP-Method-Override: POST'
 ])

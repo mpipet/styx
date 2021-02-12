@@ -26,7 +26,7 @@ function transform() {
   });
 }
 
-const source = Websocket('ws://localhost:8000/logs/events/records', {
+const source = Websocket('ws://localhost:8000/logs/events/records?follow=true', {
 	objectMode: true
 })
 
