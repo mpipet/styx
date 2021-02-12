@@ -8,6 +8,8 @@ http_read_buffer_size = 1048576
 http_write_buffer_size = 1048576
 tcp_read_buffer_size = 1048576
 tcp_write_buffer_size = 1048576
+websocket_read_buffer_size = 1048576
+websocket_write_buffer_size = 1048576
 tcp_timeout = 100
 
 [log_manager]

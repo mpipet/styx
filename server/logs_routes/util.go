@@ -54,7 +54,7 @@ func UpgradeTCP(w http.ResponseWriter) (c *net.TCPConn, err error) {
 	return conn.(*net.TCPConn), nil
 }
 
-func UpgradeWebsocket(w http.ResponseWriter, r *http.Request, allowedOrigins []string)  (conn *websocket.Conn, err error) {
+func UpgradeWebsocket(w http.ResponseWriter, r *http.Request, allowedOrigins []string, readBufferSize int, writeBufferSize int)  (conn *websocket.Conn, err error) {
 
 	upgrader := websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) (ret bool) {
@@ -66,6 +66,8 @@ func UpgradeWebsocket(w http.ResponseWriter, r *http.Request, allowedOrigins []s
 
 			return matchOrigin(origins[0], allowedOrigins)
 		},
+		ReadBufferSize: readBufferSize,
+		WriteBufferSize: writeBufferSize,
 	}
 
 	conn, err = upgrader.Upgrade(w, r, nil)

@@ -22,10 +22,12 @@ type TOMLConfig struct {
 	BindAddress            string                `toml:"bind_address"`
 	ShutdownTimeout        int                   `toml:"shutdown_timeout"`
 	CORSAllowedOrigins     []string              `toml:"cors_allowed_origins"`
-	HTTPWriteBufferSize    int                   `toml:"http_write_buffer_size"`
 	HTTPReadBufferSize     int                   `toml:"http_read_buffer_size"`
+	HTTPWriteBufferSize    int                   `toml:"http_write_buffer_size"`
 	TCPReadBufferSize      int                   `toml:"tcp_read_buffer_size"`
 	TCPWriteBufferSize     int                   `toml:"tcp_write_buffer_size"`
+	WSReadBufferSize       int                   `toml:"websocket_read_buffer_size"`
+	WSWriteBufferSize      int                   `toml:"websocket_write_buffer_size"`
 	TCPTimeout             int                   `toml:"tcp_timeout"`
 	LogManager             TOMLLogManagerConfig  `toml:"log_manager"`
 	Metrics                TOMLMetricsConfig     `toml:"metrics"`
@@ -56,6 +58,8 @@ type Config struct {
 	HTTPWriteBufferSize    int
 	TCPReadBufferSize      int
 	TCPWriteBufferSize     int
+	WSReadBufferSize       int
+	WSWriteBufferSize      int
 	TCPTimeout             int
 	LogManager             logman.Config
 	Metrics                metrics.Config
@@ -78,6 +82,8 @@ func Load(path string) (c Config, err error) {
 	c.HTTPWriteBufferSize = tc.HTTPWriteBufferSize
 	c.TCPReadBufferSize = tc.TCPReadBufferSize
 	c.TCPWriteBufferSize = tc.TCPWriteBufferSize
+	c.WSReadBufferSize = tc.WSReadBufferSize
+	c.WSWriteBufferSize = tc.WSWriteBufferSize
 	c.TCPTimeout = tc.TCPTimeout
 	c.LogManager = logman.Config(tc.LogManager)
 	c.Metrics = metrics.Config{

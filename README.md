@@ -213,13 +213,18 @@ You can join our Slack server at [...].
 
 ## TODO
 
-- Close connections open for writing on log deletion (errorHandler in fanin, ErrClosed)
 - Change ReadRecordsTCP to Consumer and WriteRecordsTCP to Producer, control parameters with options
-- Check open Websockets behaviour in case of log deletion and server shudown
-- Restore count and follow params on Websocket read endpoint, impact code examples
+- Document config.toml
+
 - Should we send an error EOF on WS and TCP endpoints or only close the connection ?
-- Add buffer size configs in WS Upgrader (server/logs_routes/util.go:59, https://pkg.go.dev/github.com/gorilla/websocket#Upgrader)
-- Gracefuly close WS connections (https://github.com/gorilla/websocket/issues/448)
+- Sent close message with error code on WS in case of error
+- Close connections open for writing on log deletion (errorHandler in fanin, ErrClosed)
+- Check global open Websockets behaviour in case of log deletion and server shudown
+
+x Close connections open for writing on server shutdown
+x Restore count and follow params on Websocket read endpoint, impact code examples
+x Gracefuly close WS connections (https://github.com/gorilla/websocket/issues/448)
+x Add buffer size configs in WS Upgrader (server/logs_routes/util.go:59, https://pkg.go.dev/github.com/gorilla/websocket#Upgrader)
 
 
 

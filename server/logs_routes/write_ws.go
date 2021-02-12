@@ -55,7 +55,7 @@ func (lr *LogsRouter) WriteWSHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	conn, err := UpgradeWebsocket(w, r, lr.config.CORSAllowedOrigins)
+	conn, err := UpgradeWebsocket(w, r, lr.config.CORSAllowedOrigins, lr.config.WSReadBufferSize, lr.config.WSWriteBufferSize)
 	if err != nil {
 		logger.Debug(err)
 
