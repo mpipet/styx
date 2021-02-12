@@ -204,7 +204,7 @@ func openLog(path, name string, options log.Options, writerBufferSize int, repor
 	l, err := log.Open(pathname, options)
 	if err != nil {
 
-		// TODO return err not exists (or other kin of errors)??
+		// TODO return err not exists (or other kind of error ?)
 
 		ml.status = StatusTainted
 

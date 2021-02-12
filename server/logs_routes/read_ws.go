@@ -10,6 +10,7 @@
 package logs_routes
 
 import (
+	"io"
 	"net/http"
 
 	"gitlab.com/dataptive/styx/api"
@@ -32,6 +33,8 @@ func (lr *LogsRouter) ReadWSHandler(w http.ResponseWriter, r *http.Request) {
 	params := api.ReadRecordsWSParams{
 		Whence:   log.SeekOrigin,
 		Position: 0,
+		Count: -1,
+		Follow: false,
 	}
 	query := r.URL.Query()
 
@@ -64,7 +67,7 @@ func (lr *LogsRouter) ReadWSHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logReader, err := managedLog.NewReader(lr.config.HTTPReadBufferSize, true, recio.ModeManual)
+	logReader, err := managedLog.NewReader(lr.config.HTTPReadBufferSize, params.Follow, recio.ModeManual)
 	if err == logman.ErrUnavailable {
 		api.WriteError(w, http.StatusBadRequest, api.ErrLogNotAvailable)
 		logger.Debug(err)
@@ -92,7 +95,7 @@ func (lr *LogsRouter) ReadWSHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = readWS(conn, logReader)
+	err = readWS(conn, logReader, params.Count)
 	if err != nil {
 		logger.Debug(err)
 
@@ -105,6 +108,8 @@ func (lr *LogsRouter) ReadWSHandler(w http.ResponseWriter, r *http.Request) {
 
 		return
 	}
+
+	logger.Trace("OK")
 
 	err = logReader.Close()
 	if err != nil {
@@ -119,12 +124,21 @@ func (lr *LogsRouter) ReadWSHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func readWS(w *websocket.Conn, lr *log.LogReader) (err error) {
+func readWS(w *websocket.Conn, lr *log.LogReader, limit int64) (err error) {
 
+	count := int64(0)
 	record := log.Record{}
 
 	for {
+		if count == limit {
+			break
+		}
+
 		_, err := lr.Read(&record)
+		if err == io.EOF {
+			break
+		}
+
 		if err == recio.ErrMustFill {
 
 			err = lr.Fill()
