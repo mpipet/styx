@@ -109,8 +109,6 @@ func (lr *LogsRouter) ReadWSHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logger.Trace("OK")
-
 	err = logReader.Close()
 	if err != nil {
 		logger.Debug(err)
