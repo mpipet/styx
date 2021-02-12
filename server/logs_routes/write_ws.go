@@ -58,13 +58,13 @@ func (lr *LogsRouter) WriteWSHandler(w http.ResponseWriter, r *http.Request) {
 	conn, err := UpgradeWebsocket(w, r, lr.config.CORSAllowedOrigins)
 	if err != nil {
 		logger.Debug(err)
+
 		logWriter.Close()
 		return
 	}
 
 	err = writeWS(logWriter, conn)
 	if err != nil {
-
 		logger.Debug(err)
 
 		logWriter.Close()
@@ -74,6 +74,14 @@ func (lr *LogsRouter) WriteWSHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = logWriter.Close()
+	if err != nil {
+		logger.Debug(err)
+
+		conn.Close()
+		return
+	}
+
+	err = conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
 	if err != nil {
 		logger.Debug(err)
 

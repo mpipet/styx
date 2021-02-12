@@ -91,6 +91,7 @@ func (lr *LogsRouter) ReadWSHandler(w http.ResponseWriter, r *http.Request) {
 	conn, err := UpgradeWebsocket(w, r, lr.config.CORSAllowedOrigins)
 	if err != nil {
 		logger.Debug(err)
+
 		logReader.Close()
 		return
 	}
@@ -105,7 +106,6 @@ func (lr *LogsRouter) ReadWSHandler(w http.ResponseWriter, r *http.Request) {
 
 		// Close conn in case its still open.
 		conn.Close()
-
 		return
 	}
 
@@ -114,6 +114,15 @@ func (lr *LogsRouter) ReadWSHandler(w http.ResponseWriter, r *http.Request) {
 		logger.Debug(err)
 
 		conn.Close()
+		return
+	}
+
+	err = conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
+	if err != nil {
+		logger.Debug(err)
+
+		conn.Close()
+		return
 	}
 
 	err = conn.Close()
