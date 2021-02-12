@@ -83,6 +83,8 @@ func ReadLog(args []string) {
 	params := api.ReadRecordsTCPParams{
 		Whence:   log.Whence(*whence),
 		Position: *position,
+		Count: *count,
+		Follow: *follow,
 	}
 
 	logInfo, err := httpClient.GetLog(readOpts.Args()[0])

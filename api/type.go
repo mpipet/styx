@@ -117,6 +117,8 @@ func (p ReadRecordsLinesParams) Validate() (err error) {
 type ReadRecordsTCPParams struct {
 	Whence   log.Whence `schema:"whence"`
 	Position int64      `schema:"position"`
+	Count    int64      `schema:"count"`
+	Follow   bool       `schema:"follow"`
 }
 
 func (p ReadRecordsTCPParams) Validate() (err error) {
