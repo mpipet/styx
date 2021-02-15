@@ -192,6 +192,59 @@ func (lm *LogManager) DeleteLog(name string) (err error) {
 	return nil
 }
 
+func (lm *LogManager) TruncateLog(name string) (err error) {
+
+	lm.logsLock.Lock()
+	defer lm.logsLock.Unlock()
+
+	if lm.closed {
+		return ErrClosed
+	}
+
+	valid := logNameRegexp.MatchString(name)
+	if !valid {
+		return ErrInvalidName
+	}
+
+	pos := -1
+	for i, ml := range lm.logs {
+		if ml.name == name {
+			pos = i
+			break
+		}
+	}
+
+	if pos == -1 {
+		return ErrNotExist
+	}
+
+	ml := lm.logs[pos]
+
+	err = ml.close()
+	if err != nil {
+		return err
+	}
+
+	lm.logs[pos] = lm.logs[len(lm.logs)-1]
+	lm.logs = lm.logs[:len(lm.logs)-1]
+
+	path := filepath.Join(lm.config.DataDirectory, name)
+
+	err = log.Truncate(path)
+	if err != nil {
+		return err
+	}
+
+	ml, err = openLog(lm.config.DataDirectory, name, log.DefaultOptions, lm.config.ReadBufferSize, lm.config.WriteBufferSize, lm.reporter)
+	if err != nil {
+		return err
+	}
+
+	lm.logs = append(lm.logs, ml)
+
+	return nil
+}
+
 func (lm *LogManager) RestoreLog(name string, r io.Reader) (err error) {
 
 	if lm.closed {

@@ -145,6 +145,29 @@ func (c *Client) DeleteLog(name string) (err error) {
 	return nil
 }
 
+func (c *Client) TruncateLog(name string) (err error) {
+
+	endpoint := c.baseURL + "/logs/" + name + "/truncate"
+
+	req, err := http.NewRequest(http.MethodPost, endpoint, nil)
+	if err != nil {
+		return err
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		err = api.ReadError(resp.Body)
+		return err
+	}
+
+	return nil
+}
+
 func (c *Client) BackupLog(name string, w io.Writer) (err error) {
 
 	endpoint := c.baseURL + "/logs/" + name + "/backup"

@@ -41,6 +41,7 @@ Commands:
 	create			Create a new log
 	get			Show log details
 	delete			Delete a log
+	truncate                Truncate a log
 	backup			Backup a log
 	restore			Restore a log
 	write			Write records to a log
@@ -79,6 +80,8 @@ func main() {
 			logs.GetLog(args[1:])
 		case "delete":
 			logs.DeleteLog(args[1:])
+		case "truncate":
+			logs.TruncateLog(args[1:])
 		case "backup":
 			logs.BackupLog(args[1:])
 		case "restore":

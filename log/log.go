@@ -181,6 +181,23 @@ func Delete(path string) (err error) {
 	return nil
 }
 
+func Truncate(path string) (err error) {
+
+	names, err := listSegments(path)
+	if err != nil {
+		return err
+	}
+
+	for _, name := range names {
+		err := deleteSegment(path, name)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func Scan(path string) (err error) {
 
 	configPathname := filepath.Join(path, configFilename)
