@@ -7,7 +7,6 @@ import (
 
 	"gitlab.com/dataptive/styx/client"
 	"gitlab.com/dataptive/styx/log"
-	"gitlab.com/dataptive/styx/recio"
 )
 
 type Event struct {
@@ -16,21 +15,15 @@ type Event struct {
 }
 
 func main() {
+	c := client.NewClient("http://localhost:8000")
 
-	styxURL := "http://localhost:8000"
-	logName := "fast"
-	bufferSize := 1 << 20 // 1MB
-	readTimeout := 30 // 30 seconds
-
-	c := client.NewClient(styxURL)
-
-	tw, err := c.WriteRecordsTCP(logName, recio.ModeAuto, bufferSize, readTimeout)
+	producer, err := c.NewProducer("fast", client.DefaultProducerOptions)
 	if err != nil {
 		logger.Fatal(err)
 	}
+	defer producer.Close()
 
 	count := 0
-
 	for {
 		event := Event{
 			Timestamp: time.Now().Unix(),
@@ -44,31 +37,17 @@ func main() {
 
 		r := log.Record(payload)
 
-		_, err = tw.Write(&r)
+		_, err = producer.Write(&r)
 		if err != nil {
 			logger.Fatal(err)
 		}
 
-		err = tw.Flush()
-		if err != nil {
-			logger.Fatal(err)
-		}
-
-		count += 1
+		count++
 
 		if count % 1000 == 0 {
 			logger.Printf("sent %d records", count)
 		}
 	}
 
-	err = tw.Flush()
-	if err != nil {
-		logger.Fatal(err)
-	}
-
-	err = tw.Close()
-	if err != nil {
-		logger.Fatal(err)
-	}
-
+	producer.Flush()
 }
