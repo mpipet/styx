@@ -32,7 +32,7 @@ Response contains records formatted according to `Accept`header.
 **Curl**
 
 ```bash
-$ curl -XGET 'http://localhost:8000/logs/myLog/records&whence=start'
+$ curl -X GET 'http://localhost:8000/logs/myLog/records&whence=start'
 ```
 
 **Python** (_Requires [requests](https://pypi.org/project/requests/) package._)
@@ -80,7 +80,7 @@ fmt.Println(record)
 **Curl**
 
 ```bash
-$ curl -XGET 'http://localhost:8000/logs/myLog/records?whence=start&count=10' \
+$ curl -X GET 'http://localhost:8000/logs/myLog/records?whence=start&count=10' \
   -H 'Accept: application/vnd.styx.line-delimited;line-ending=lf'
 ```
 

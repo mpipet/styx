@@ -31,7 +31,7 @@ Status: 200 OK
 **Curl**
 
 ```bash
-$ curl -XPOST 'http://localhost:8000/logs/myLog/records' -d 'my record content'
+$ curl -X POST 'http://localhost:8000/logs/myLog/records' -d 'my record content'
 ```
 
 **Python** (_Requires [requests](https://pypi.org/project/requests/) package._)
@@ -63,7 +63,7 @@ client.Post(
 **Curl**
 
 ```bash
-$ curl -XPOST 'http://localhost:8000/logs/myLog/records' \
+$ curl -X POST 'http://localhost:8000/logs/myLog/records' \
   -H 'Content-Type: application/vnd.styx.line-delimited;line-ending=lf' \
   -d $'my record content\nmy record content\n'
 ```
