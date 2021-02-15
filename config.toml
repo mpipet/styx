@@ -14,7 +14,8 @@ shutdown_timeout = 3
 # Allowed origins for CORS requests
 cors_allowed_origins = ["*"]
 
-# Read and write buffer sizes in bytes for HTTP record production and consumption requests
+# Read and write buffer sizes in bytes for HTTP record production and consumption
+# requests
 http_read_buffer_size = 1048576
 http_write_buffer_size = 1048576
 
