@@ -12,11 +12,13 @@ package logman
 var (
 	DefaultConfig = Config{
 		DataDirectory:   "./data",
+		ReadBufferSize:  1 << 20, // 1MB
 		WriteBufferSize: 1 << 20, // 1MB
 	}
 )
 
 type Config struct {
 	DataDirectory   string
+	ReadBufferSize  int
 	WriteBufferSize int
 }

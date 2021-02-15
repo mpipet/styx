@@ -36,6 +36,7 @@ type TOMLConfig struct {
 
 type TOMLLogManagerConfig struct {
 	DataDirectory   string `toml:"data_directory"`
+	ReadBufferSize  int    `toml:"read_buffer_size"`
 	WriteBufferSize int    `toml:"write_buffer_size"`
 }
 

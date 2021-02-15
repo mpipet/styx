@@ -67,7 +67,7 @@ func (lr *LogsRouter) ReadWSHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logReader, err := managedLog.NewReader(lr.config.HTTPReadBufferSize, params.Follow, recio.ModeManual)
+	logReader, err := managedLog.NewReader(params.Follow, recio.ModeManual)
 	if err == logman.ErrUnavailable {
 		api.WriteError(w, http.StatusBadRequest, api.ErrLogNotAvailable)
 		logger.Debug(err)

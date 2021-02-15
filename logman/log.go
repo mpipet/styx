@@ -47,6 +47,7 @@ type Log struct {
 	path             string
 	name             string
 	options          log.Options
+	readBufferSize   int
 	writerBufferSize int
 	status           LogStatus
 	log              *log.Log
@@ -69,13 +70,13 @@ func (ml *Log) NewWriter(ioMode recio.IOMode) (fw *log.FaninWriter, err error) {
 	return fw, nil
 }
 
-func (ml *Log) NewReader(bufferSize int, follow bool, ioMode recio.IOMode) (lr *log.LogReader, err error) {
+func (ml *Log) NewReader(follow bool, ioMode recio.IOMode) (lr *log.LogReader, err error) {
 
 	if ml.Status() != StatusOK {
 		return nil, ErrUnavailable
 	}
 
-	lr, err = ml.log.NewReader(bufferSize, follow, ioMode)
+	lr, err = ml.log.NewReader(ml.readBufferSize, follow, ioMode)
 	if err != nil {
 		return nil, err
 	}
@@ -136,7 +137,7 @@ func (ml *Log) Backup(w io.Writer) (err error) {
 	return nil
 }
 
-func createLog(path, name string, config log.Config, options log.Options, writerBufferSize int, reporter metrics.Reporter) (ml *Log, err error) {
+func createLog(path, name string, config log.Config, options log.Options, readBufferSize int, writerBufferSize int, reporter metrics.Reporter) (ml *Log, err error) {
 
 	valid := logNameRegexp.MatchString(name)
 	if !valid {
@@ -147,6 +148,7 @@ func createLog(path, name string, config log.Config, options log.Options, writer
 		path:             path,
 		name:             name,
 		options:          options,
+		readBufferSize:   readBufferSize,
 		writerBufferSize: writerBufferSize,
 		status:           StatusUnknown,
 		reporter:         reporter,
@@ -181,7 +183,7 @@ func createLog(path, name string, config log.Config, options log.Options, writer
 	return ml, nil
 }
 
-func openLog(path, name string, options log.Options, writerBufferSize int, reporter metrics.Reporter) (ml *Log, err error) {
+func openLog(path, name string, options log.Options, readBufferSize int, writerBufferSize int, reporter metrics.Reporter) (ml *Log, err error) {
 
 	valid := logNameRegexp.MatchString(name)
 	if !valid {
@@ -192,6 +194,7 @@ func openLog(path, name string, options log.Options, writerBufferSize int, repor
 		path:             path,
 		name:             name,
 		options:          options,
+		readBufferSize:   readBufferSize,
 		writerBufferSize: writerBufferSize,
 		status:           StatusUnknown,
 		reporter:         reporter,

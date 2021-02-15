@@ -53,7 +53,7 @@ func NewLogManager(config Config, reporter metrics.Reporter) (lm *LogManager, er
 
 		logger.Debugf("logman: opening log %s", name)
 
-		ml, err := openLog(lm.config.DataDirectory, name, log.DefaultOptions, lm.config.WriteBufferSize, lm.reporter)
+		ml, err := openLog(lm.config.DataDirectory, name, log.DefaultOptions, lm.config.ReadBufferSize, lm.config.WriteBufferSize, lm.reporter)
 		if err != nil {
 			return lm, err
 		}
@@ -114,7 +114,7 @@ func (lm *LogManager) CreateLog(name string, logConfig log.Config) (ml *Log, err
 		return nil, ErrClosed
 	}
 
-	ml, err = createLog(lm.config.DataDirectory, name, logConfig, log.DefaultOptions, lm.config.WriteBufferSize, lm.reporter)
+	ml, err = createLog(lm.config.DataDirectory, name, logConfig, log.DefaultOptions, lm.config.ReadBufferSize, lm.config.WriteBufferSize, lm.reporter)
 	if err != nil {
 		return nil, err
 	}
@@ -217,7 +217,7 @@ func (lm *LogManager) RestoreLog(name string, r io.Reader) (err error) {
 		return ErrClosed
 	}
 
-	ml, err := openLog(lm.config.DataDirectory, name, log.DefaultOptions, lm.config.WriteBufferSize, lm.reporter)
+	ml, err := openLog(lm.config.DataDirectory, name, log.DefaultOptions, lm.config.ReadBufferSize, lm.config.WriteBufferSize, lm.reporter)
 	if err != nil {
 		return err
 	}
