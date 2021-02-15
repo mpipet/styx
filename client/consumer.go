@@ -12,42 +12,73 @@ package client
 import (
 	"net"
 	"net/http"
+	"net/url"
 	"strconv"
 
 	"gitlab.com/dataptive/styx/api"
 	"gitlab.com/dataptive/styx/api/tcp"
 	"gitlab.com/dataptive/styx/log"
 	"gitlab.com/dataptive/styx/recio"
+
+	"github.com/gorilla/schema"
 )
 
 var (
-	DefaultProducerOptions = ProducerOptions{
+	DefaultConsumerOptions = ConsumerOptions{
 		ReadTimeout:     30,      // 30 seconds
 		ReadBufferSize:  1 << 20, // 1 MB
 		WriteBufferSize: 1 << 20, // 1 MB
 		IOMode:          recio.ModeAuto,
 	}
+
+	DefaultConsumerParams = ConsumerParams{
+		Whence:   SeekOrigin,
+		Position: 0,
+		Count:    -1,
+		Follow:   false,
+	}
 )
 
-type SyncHandler func(syncProgress log.SyncProgress)
-type ErrorHandler func(err error)
+type Whence string
 
-type Producer struct {
-	writer *tcp.TCPWriter
+const (
+	SeekOrigin  Whence = "origin"  // Seek from the log origin (position 0).
+	SeekStart   Whence = "start"   // Seek from the first available record.
+	SeekCurrent Whence = "current" // Seek from the current position.
+	SeekEnd     Whence = "end"     // Seek from the end of the log.
+)
+
+type Consumer struct {
+	reader *tcp.TCPReader
 }
 
-type ProducerOptions struct {
+type ConsumerParams struct {
+	Whence   Whence `schema:"whence"`
+	Position int64  `schema:"position"`
+	Count    int64  `schema:"count"`
+	Follow   bool   `schema:"follow"`
+}
+
+type ConsumerOptions struct {
 	ReadTimeout     int
 	ReadBufferSize  int
 	WriteBufferSize int
 	IOMode          recio.IOMode
 }
 
-func (c *Client) NewProducer(name string, options ProducerOptions) (p *Producer, err error) {
+func (c *Client) NewConsumer(name string, params ConsumerParams, options ConsumerOptions) (co *Consumer, err error) {
 
-	endpoint := c.baseURL + "/logs/" + name + "/records"
+	encoder := schema.NewEncoder()
+	queryParams := url.Values{}
 
-	req, err := http.NewRequest(http.MethodPost, endpoint, nil)
+	err = encoder.Encode(params, queryParams)
+	if err != nil {
+		return nil, err
+	}
+
+	url := c.baseURL + "/logs/" + name + "/records?" + queryParams.Encode()
+
+	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -98,18 +129,18 @@ func (c *Client) NewProducer(name string, options ProducerOptions) (p *Producer,
 		}
 	}
 
-	writer := tcp.NewTCPWriter(tcpConn, options.WriteBufferSize, options.ReadBufferSize, options.ReadTimeout, remoteTimeout, options.IOMode)
+	reader := tcp.NewTCPReader(tcpConn, options.WriteBufferSize, options.ReadBufferSize, options.ReadTimeout, remoteTimeout, options.IOMode)
 
-	p = &Producer{
-		writer: writer,
+	co = &Consumer{
+		reader: reader,
 	}
 
-	return p, nil
+	return co, nil
 }
 
-func (p *Producer) Write(r *log.Record) (n int, err error) {
+func (co *Consumer) Read(r *log.Record) (n int, err error) {
 
-	n, err = p.writer.Write(r)
+	n, err = co.reader.Read(r)
 	if err != nil {
 		return n, err
 	}
@@ -117,9 +148,9 @@ func (p *Producer) Write(r *log.Record) (n int, err error) {
 	return n, nil
 }
 
-func (p *Producer) Flush() (err error) {
+func (co *Consumer) Close() (err error) {
 
-	err = p.writer.Flush()
+	err = co.reader.Close()
 	if err != nil {
 		return err
 	}
@@ -127,22 +158,7 @@ func (p *Producer) Flush() (err error) {
 	return nil
 }
 
-func (p *Producer) Close() (err error) {
+func (co *Consumer) HandleError(h ErrorHandler) {
 
-	err = p.writer.Close()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (p *Producer) HandleSync(h SyncHandler) {
-
-	p.writer.HandleSync(log.SyncHandler(h))
-}
-
-func (p *Producer) HandleError(h ErrorHandler) {
-
-	p.writer.HandleError(tcp.ErrorHandler(h))
+	co.reader.HandleError(tcp.ErrorHandler(h))
 }

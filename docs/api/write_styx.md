@@ -23,30 +23,25 @@ Status: 101 Switching protocol
 
 ### Code samples
 
-**Go** (_Requires [TODO Styx client](), [TODO Styx recio]()  packages._)
+**Go** (_Requires [styx/client](), [styx/log]() packages._)
 
 ```golang
-bufferSize := 1 << 20 // 1Mb
-timeout := 10
+c := client.NewClient("http://localhost:8000")
 
-c := client.NewClient("http://127.0.0.1:8000")
-writer, err := c.WriteRecordsTCP("myLog", recio.ModeAuto, bufferSize, timeout)
+producer, err := c.NewProducer("test", client.DefaultProducerOptions)
 if err != nil {
 	logger.Fatal(err)
 }
+defer producer.Close()
 
-record := log.Record("my record content")
+r := log.Record([]byte("Hello, Styx !"))
 
 for i := 0; i < 10; i++ {
-
-  _, err = writer.Write(&record)
-  if err != nil {
-  	logger.Fatal(err)
-  }
+	_, err := producer.Write(&r)
+	if err != nil {
+		logger.Fatal(err)
+	}
 }
 
-err = writer.Flush()
-if err != nil {
-	logger.Fatal(err)
-}
+producer.Flush()
 ```

@@ -23,26 +23,24 @@ Status: 101 Switching protocol
 
 ### Code samples
 
-**Go** (_Requires [TODO Styx client](), [TODO Styx recio](), [TODO Styx api]()  packages._)
+**Go** (_Requires [styx/client](), [styx/log]() packages._)
 
 ```golang
 c := client.NewClient("http://localhost:8000")
 
-bufferSize := 1 << 20 // 1 Mb
-timeout := 6
+params := client.DefaultConsumerParams
+// params.Follow = true
 
-params := api.ReadRecordsTCPParams{
-	Whence:   log.SeekOrigin,
-	Position: 0,
-}
-
-reader, err := c.ReadRecordsTCP("test", params, recio.ModeAuto, bufferSize, timeout)
+consumer, err := c.NewConsumer("test", params, client.DefaultConsumerOptions)
 if err != nil {
 	logger.Fatal(err)
 }
+defer consumer.Close()
+
+r := log.Record{}
 
 for {
-	_, err := reader.Read(&record)
+	_, err := consumer.Read(&r)
 	if err == io.EOF {
 		break
 	}
@@ -50,5 +48,7 @@ for {
 	if err != nil {
 		logger.Fatal(err)
 	}
+
+	logger.Println(string(r))
 }
 ```
